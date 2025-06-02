@@ -1,3 +1,9 @@
+DROP DATABASE IF EXISTS pair_project;
+
+CREATE DATABASE pair_project;
+
+USE pair_project;
+
 CREATE TABLE Users (
     id INT PRIMARY KEY AUTO_INCREMENT,
     username VARCHAR(100) NOT NULL UNIQUE,
@@ -52,7 +58,7 @@ CREATE TABLE Products (
     FOREIGN KEY (category_id) REFERENCES Categories(id),
     INDEX idx_category_id (category_id),
     INDEX idx_price (price),
-    INDEX idx_name (name),
+    INDEX idx_name (name)
 );
 
 CREATE TABLE Orders (
