@@ -2,6 +2,11 @@
 - Online Store yang menjual peralatan olahraga. Mulai dari sepatu, celana, baju dsb. Pelanggan dapat menjadi member agar seluruh transaksi dapat ter-record.
 - Batasan aplikasi. Untuk berbelanja customer wajib memiliki user. Customer bisa berbelanja tanpa akses login namun harus melalui admin.
 
+# Batasan Aplikasi
+- Login harus menggunakan username
+- Customer harus membuat mendaftar data pribadi sekaligus akun/user untuk dapat berbelanja.
+- User admin harus dibuatkan melalui sistem yang berbeda/diinject melalui sql menggunakan store procedure.
+
 # Entity & Attribute
 - Users
     - id INT PK AUTO_INCREMENT
@@ -21,7 +26,7 @@
     - updated_at TIMESTAMP NOT NULL
 - UserCustomer
     - customer_id INT PK FK NN
-    - user_id INT PK FK NN
+    - user_id INT FK NN
     - created_at TIMESTAMP NOT NULL
     - updated_at TIMESTAMP NOT NULL
 - Categories
