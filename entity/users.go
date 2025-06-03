@@ -18,3 +18,13 @@ type User struct {
 	CreateAt	time.Time
 	UpdatedAt 	time.Time
 }
+
+type CustomerRegister struct{
+	Name     string
+	Address  string
+	Email    string
+	Phone    string
+	Username string
+	Password string
+	Role     string // "admin" atau "customer"
+}

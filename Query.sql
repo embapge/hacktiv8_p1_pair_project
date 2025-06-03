@@ -24,7 +24,7 @@ CREATE TABLE customers (
     phone_number VARCHAR(20) NOT NULL UNIQUE, 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
     updated_at TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    created_by INT NOT NULL, 
+    created_by INT, 
     updated_by INT, 
     FOREIGN KEY (created_by) REFERENCES users(id), 
     FOREIGN KEY (updated_by) REFERENCES users(id), 

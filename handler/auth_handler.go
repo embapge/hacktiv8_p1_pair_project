@@ -3,11 +3,8 @@ package handler
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"pairproject/entity"
 	"strings"
-
-	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthHandler struct {
@@ -15,19 +12,50 @@ type AuthHandler struct {
 }
 
 // // Fungsi untuk menambah user baru (contoh, bisa diubah sesuai kebutuhan)
-func (h *AuthHandler) Register(username, email, password, role string) {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+func (h *AuthHandler) Register(cust *entity.CustomerRegister) (string, error) {
+	// Insert user and return the inserted user ID
+	resultUser, err := h.DB.Exec(
+		"INSERT INTO users(username, email, password, role) VALUES (?, ?, ?, 'customer')",
+		strings.TrimSpace(cust.Username), strings.TrimSpace(cust.Email), cust.Password,
+	)
+
 	if err != nil {
-		log.Println("Gagal hash password:", err)
-		return
+		return "", err
 	}
-	_, err = h.DB.Exec("INSERT INTO users(username, email, password, role) VALUES (?,?,?,?)",
-		strings.TrimSpace(username), strings.TrimSpace(email), hashedPassword, strings.TrimSpace(role))
+
+	userID, err := resultUser.LastInsertId()
 	if err != nil {
-		log.Println("Gagal tambah user:", err)
-	} else {
-		fmt.Println("User berhasil ditambahkan!")
+		return "", err
 	}
+
+	result, err := h.DB.Exec(
+		"INSERT INTO customers(name, address, email, phone_number, created_by) VALUES (?, ?, ?, ?, ?)",
+		strings.TrimSpace(cust.Name),
+		strings.TrimSpace(cust.Address),
+		strings.TrimSpace(cust.Email),
+		strings.TrimSpace(cust.Phone),
+		userID,
+	)
+	
+	if err != nil {
+		return "Gagal masuk data customer", err
+	}
+
+	customerID, err := result.LastInsertId()
+	if err != nil {
+		return "Gagal mendapatkan ID customer", err
+	}
+
+	_, err = h.DB.Exec(
+		"INSERT INTO user_customers(customer_id, user_id) VALUES (?, ?)",
+		customerID, userID,
+	)
+
+	if err != nil {
+		return "", err
+	}
+
+	return "Data berhasil masuk", nil
 }
 
 // Fungsi untuk login user
@@ -41,8 +69,6 @@ func (h *AuthHandler) LoginUser(username, password string) (*entity.User, error)
 
 	fmt.Println("Ketik User:", username)
 	fmt.Println("Hashed User:", user)
-	// fmt.Println("Hashed from DB:", hashedPassword)
-	// fmt.Println("Input password:", password)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("Password atau username salah")
