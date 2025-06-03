@@ -41,7 +41,7 @@ CREATE TABLE user_customers (
     FOREIGN KEY (customer_id) REFERENCES customers(id) 
 ); 
  
-CREATE TABLE Categories ( 
+CREATE TABLE categories ( 
     id INT PRIMARY KEY AUTO_INCREMENT, 
     name VARCHAR(100) NOT NULL, 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
@@ -66,7 +66,7 @@ CREATE TABLE products (
     updated_by INT, 
     FOREIGN KEY (created_by) REFERENCES users(id), 
     FOREIGN KEY (updated_by) REFERENCES users(id), 
-    FOREIGN KEY (category_id) REFERENCES Categories(id), 
+    FOREIGN KEY (category_id) REFERENCES categories(id), 
     INDEX idx_category_id (category_id), 
     INDEX idx_price (price), 
     INDEX idx_name (name) 
@@ -141,3 +141,78 @@ CREATE TABLE payments (
     INDEX idx_date (date), 
     INDEX idx_method (method) 
 ); 
+
+
+INSERT INTO users (username, email, password, role)
+VALUES 
+/*('admin01', 'admin01@example.com', '$2b$12$rcVbOnmFPSu5S4sSccrYPuLZXHybabFFYCFIi9R4uEft1uTeq2rO2', 'admin'),
+('staff01', 'staff01@example.com', '$2b$12$rcVbOnmFPSu5S4sSccrYPuLZXHybabFFYCFIi9R4uEft1uTeq2rO2', 'staff'),
+('staff02', 'staff02@example.com', '$2b$12$rcVbOnmFPSu5S4sSccrYPuLZXHybabFFYCFIi9R4uEft1uTeq2rO2', 'staff'),
+('custuser1', 'cust1@example.com', '$2b$12$rcVbOnmFPSu5S4sSccrYPuLZXHybabFFYCFIi9R4uEft1uTeq2rO2', 'customer'),
+('custuser2', 'cust2@example.com', '$2b$12$rcVbOnmFPSu5S4sSccrYPuLZXHybabFFYCFIi9R4uEft1uTeq2rO2', 'customer');*/
+
+('admin01', 'admin01@example.com', '123456', 'admin'),
+('staff01', 'staff01@example.com', '123456', 'staff'),
+('staff02', 'staff02@example.com', '123456', 'staff'),
+('custuser1', 'cust1@example.com', '123456', 'customer'),
+('custuser2', 'cust2@example.com', '123456', 'customer');
+
+
+INSERT INTO customers (name, address, email, phone_number, created_by, updated_by)
+VALUES 
+('John Doe', 'Jl. Merdeka No. 123, Jakarta', 'john@example.com', '081234567890', 2, 2),
+('Jane Smith', 'Jl. Sudirman No. 10, Bandung', 'jane@example.com', '089876543210', 3, 3);
+
+INSERT INTO user_customers (user_id, customer_id)
+VALUES 
+(4, 1),
+(5, 2);
+
+INSERT INTO categories (name, created_by, updated_by)
+VALUES 
+('Fitness Equipment', 2, 2),
+('Outdoor Gear', 2, 2),
+('Nutrition & Supplements', 3, 3);
+
+INSERT INTO products (name, stock, description, category_id, price, created_by, updated_by)
+VALUES 
+('Adjustable Dumbbell 20kg', 10, 'Customizable weight dumbbell for home workouts', 1, 1200000.00, 2, 2),
+('Treadmill Compact X100', 4, 'Foldable treadmill with digital display', 1, 5500000.00, 2, 2),
+('Tent 2-Person Waterproof', 8, 'Outdoor tent ideal for camping', 2, 875000.00, 3, 3),
+('Camping Stove Mini', 15, 'Portable gas stove for outdoor use', 2, 320000.00, 3, 3),
+('Whey Protein 1kg', 20, 'Chocolate flavor protein supplement', 3, 450000.00, 2, 2),
+('Electrolyte Drink Pack (12x)', 30, 'Hydration booster during exercise', 3, 180000.00, 3, 3);
+
+INSERT INTO orders (customer_id, number_display, date, status, total, created_by, updated_by)
+VALUES 
+(1, 'ORD-20250601-001', '2025-06-01', 'completed', 1700000.00, 2, 2),
+(2, 'ORD-20250601-002', '2025-06-01', 'processing', 630000.00, 3, 3);
+
+-- Order 1: Dumbbell + Whey Protein
+INSERT INTO order_details (order_id, product_id, qty, created_by, updated_by)
+VALUES 
+(1, 1, 1, 2, 2),  -- Adjustable Dumbbell
+(1, 5, 1, 2, 2);  -- Whey Protein
+
+-- Order 2: Camping Stove + Electrolyte Drink
+INSERT INTO order_details (order_id, product_id, qty, created_by, updated_by)
+VALUES 
+(2, 4, 1, 3, 3),  -- Camping Stove
+(2, 6, 1, 3, 3);  -- Electrolyte Drink
+
+-- Billing for Order 1
+INSERT INTO billings (order_id, number_display, subtotal, tax, total, status, created_by, updated_by)
+VALUES 
+(1, 'BILL-20250601-001', 1650000.00, 50000.00, 1700000.00, 'paid', 2, 2);
+
+-- Billing for Order 2
+INSERT INTO billings (order_id, number_display, subtotal, tax, total, status, created_by, updated_by)
+VALUES 
+(2, 'BILL-20250601-002', 600000.00, 30000.00, 630000.00, 'unpaid', 3, 3);
+
+-- Payment for Billing 1
+INSERT INTO payments (billing_id, date, amount, method, created_by, updated_by)
+VALUES 
+(1, '2025-06-01 10:00:00', 1700000.00, 'transfer', 2, 2);
+
+SELECT id, username, email, role, password FROM users WHERE username = 'admin01';

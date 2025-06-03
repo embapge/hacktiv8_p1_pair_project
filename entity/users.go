@@ -13,8 +13,8 @@ type User struct {
 	ID			int
 	Username	string
 	Email		string
-	Password	string
 	Role		Role
+	Password	string
 	CreateAt	time.Time
 	UpdatedAt 	time.Time
 }
