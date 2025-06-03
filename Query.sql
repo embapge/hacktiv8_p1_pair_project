@@ -145,11 +145,17 @@ CREATE TABLE payments (
 
 INSERT INTO users (username, email, password, role)
 VALUES 
-('admin01', 'admin01@example.com', 'hashed_pw1', 'admin'),
-('staff01', 'staff01@example.com', 'hashed_pw2', 'staff'),
-('staff02', 'staff02@example.com', 'hashed_pw3', 'staff'),
-('custuser1', 'cust1@example.com', 'hashed_pw4', 'customer'),
-('custuser2', 'cust2@example.com', 'hashed_pw5', 'customer');
+/*('admin01', 'admin01@example.com', '$2b$12$rcVbOnmFPSu5S4sSccrYPuLZXHybabFFYCFIi9R4uEft1uTeq2rO2', 'admin'),
+('staff01', 'staff01@example.com', '$2b$12$rcVbOnmFPSu5S4sSccrYPuLZXHybabFFYCFIi9R4uEft1uTeq2rO2', 'staff'),
+('staff02', 'staff02@example.com', '$2b$12$rcVbOnmFPSu5S4sSccrYPuLZXHybabFFYCFIi9R4uEft1uTeq2rO2', 'staff'),
+('custuser1', 'cust1@example.com', '$2b$12$rcVbOnmFPSu5S4sSccrYPuLZXHybabFFYCFIi9R4uEft1uTeq2rO2', 'customer'),
+('custuser2', 'cust2@example.com', '$2b$12$rcVbOnmFPSu5S4sSccrYPuLZXHybabFFYCFIi9R4uEft1uTeq2rO2', 'customer');*/
+
+('admin01', 'admin01@example.com', '123456', 'admin'),
+('staff01', 'staff01@example.com', '123456', 'staff'),
+('staff02', 'staff02@example.com', '123456', 'staff'),
+('custuser1', 'cust1@example.com', '123456', 'customer'),
+('custuser2', 'cust2@example.com', '123456', 'customer');
 
 
 INSERT INTO customers (name, address, email, phone_number, created_by, updated_by)
@@ -208,3 +214,5 @@ VALUES
 INSERT INTO payments (billing_id, date, amount, method, created_by, updated_by)
 VALUES 
 (1, '2025-06-01 10:00:00', 1700000.00, 'transfer', 2, 2);
+
+SELECT id, username, email, role, password FROM users WHERE username = 'admin01';
