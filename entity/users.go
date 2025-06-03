@@ -2,11 +2,19 @@ package entity
 
 import "time"
 
-type Users struct {
+type Role string
+
+const (
+	RoleAdmin		Role = "admin"
+	RoleCustomer	Role = "customer"
+)
+
+type User struct {
 	ID			int
 	Username	string
 	Email		string
 	Password	string
-	Create_at	time.Time
-	Updated_at 	time.Time
+	Role		Role
+	CreateAt	time.Time
+	UpdatedAt 	time.Time
 }

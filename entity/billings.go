@@ -1,0 +1,26 @@
+package entity
+
+import "time"
+
+
+type StatusBilling string
+
+const (
+	StatusUnpaid		StatusBilling = "unpaid"
+	StatusPaid			StatusBilling = "paid"
+	StatusCancelled		StatusBilling = "cancelled"
+	StatusRefunded		StatusBilling = "refunded"
+)
+
+type Billing struct {
+	ID				int
+	OrderID 		int
+	NumberDisplay	string
+	Subtotal		float64
+	Tax				float64
+	Status			StatusBilling
+	CreatedAt		time.Time
+	UpdatedAt		time.Time
+	CreatedBy		int
+	UpdatedBy		int
+}
