@@ -1,0 +1,52 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Safari/605.1.15" version="27.1.1">
+  <diagram name="Page-1" id="SA__8-6vBq2yEH9kJLS1">
+    <mxGraphModel dx="1107" dy="597" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="Kard7SKp6GR-nqAfjVyI-71" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="Kard7SKp6GR-nqAfjVyI-72" target="Kard7SKp6GR-nqAfjVyI-74">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Kard7SKp6GR-nqAfjVyI-72" value="Start" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.start_1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="354" y="290" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Kard7SKp6GR-nqAfjVyI-73" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="Kard7SKp6GR-nqAfjVyI-74" target="Kard7SKp6GR-nqAfjVyI-76">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Kard7SKp6GR-nqAfjVyI-74" value="User input email, username, password&amp;nbsp;" style="whiteSpace=wrap;html=1;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="344" y="390" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Kard7SKp6GR-nqAfjVyI-75" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="Kard7SKp6GR-nqAfjVyI-76" target="Kard7SKp6GR-nqAfjVyI-80">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Kard7SKp6GR-nqAfjVyI-76" value="email/username already exists?" style="rhombus;whiteSpace=wrap;html=1;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="297" y="490" width="214" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="Kard7SKp6GR-nqAfjVyI-77" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1.008;entryY=0.4;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="Kard7SKp6GR-nqAfjVyI-76" target="Kard7SKp6GR-nqAfjVyI-74">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Kard7SKp6GR-nqAfjVyI-78" value="N" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="414" y="600" width="30" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="Kard7SKp6GR-nqAfjVyI-79" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="Kard7SKp6GR-nqAfjVyI-80" target="Kard7SKp6GR-nqAfjVyI-82">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Kard7SKp6GR-nqAfjVyI-80" value="Save user to Database" style="whiteSpace=wrap;html=1;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="344" y="650" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Kard7SKp6GR-nqAfjVyI-81" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="Kard7SKp6GR-nqAfjVyI-82" target="Kard7SKp6GR-nqAfjVyI-83">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Kard7SKp6GR-nqAfjVyI-82" value="Register Succesful" style="whiteSpace=wrap;html=1;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="344" y="750" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Kard7SKp6GR-nqAfjVyI-83" value="End" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.terminator;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="354" y="840" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Kard7SKp6GR-nqAfjVyI-84" value="Y" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="490" y="460" width="30" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
