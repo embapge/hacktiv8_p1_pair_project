@@ -14,8 +14,8 @@ type AuthHandler struct {
 	DB *sql.DB
 }
 
-// Fungsi untuk menambah user baru (contoh, bisa diubah sesuai kebutuhan)
-func (h *AuthHandler) AddUser(username, email, password, role string) {
+// // Fungsi untuk menambah user baru (contoh, bisa diubah sesuai kebutuhan)
+func (h *AuthHandler) Register(username, email, password, role string) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		log.Println("Gagal hash password:", err)
