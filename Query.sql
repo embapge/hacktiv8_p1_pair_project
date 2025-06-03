@@ -110,7 +110,6 @@ CREATE TABLE billings (
     id INT PRIMARY KEY AUTO_INCREMENT, 
     order_id INT NOT NULL, 
     number_display VARCHAR(50), 
-    subtotal DECIMAL(10,2) DEFAULT 0 CHECK (subtotal >= 0) NOT NULL, 
     tax DECIMAL(10,2) DEFAULT 0 CHECK (tax >= 0) NOT NULL, 
     total DECIMAL(10,2) DEFAULT 0 CHECK (total >= 0) NOT NULL, 
     status ENUM('unpaid', 'paid', 'cancelled', 'refunded') DEFAULT 'unpaid', 
@@ -201,14 +200,14 @@ VALUES
 (2, 6, 1, 3, 3);  -- Electrolyte Drink
 
 -- Billing for Order 1
-INSERT INTO billings (order_id, number_display, subtotal, tax, total, status, created_by, updated_by)
+INSERT INTO billings (order_id, number_display, tax, total, status, created_by, updated_by)
 VALUES 
-(1, 'BILL-20250601-001', 1650000.00, 50000.00, 1700000.00, 'paid', 2, 2);
+(1, 'BILL-20250601-001', 50000.00, 1700000.00, 'paid', 2, 2);
 
 -- Billing for Order 2
-INSERT INTO billings (order_id, number_display, subtotal, tax, total, status, created_by, updated_by)
+INSERT INTO billings (order_id, number_display, tax, total, status, created_by, updated_by)
 VALUES 
-(2, 'BILL-20250601-002', 600000.00, 30000.00, 630000.00, 'unpaid', 3, 3);
+(2, 'BILL-20250601-002', 30000.00, 630000.00, 'unpaid', 3, 3);
 
 -- Payment for Billing 1
 INSERT INTO payments (billing_id, date, amount, method, created_by, updated_by)
