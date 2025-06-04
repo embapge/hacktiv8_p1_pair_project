@@ -75,21 +75,20 @@ CREATE TABLE products (
 CREATE TABLE orders ( 
     id INT PRIMARY KEY AUTO_INCREMENT, 
     customer_id INT NOT NULL, 
-    number_display VARCHAR(50), 
+    number_display VARCHAR(50) UNIQUE, 
     date DATE NOT NULL, 
-    status ENUM('processing', 'completed', 'cancel') DEFAULT('processing') NOT NULL,
-    total DECIMAL(10,2) DEFAULT 0 CHECK (total >= 0) NOT NULL, 
+    status ENUM('processing', 'completed', 'cancel') NOT NULL DEFAULT 'processing',
+    total DECIMAL(10,2) NOT NULL DEFAULT 0 CHECK (total >= 0), 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
-    updated_at TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    created_by INT NOT NULL, 
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_by INT NOT NULL,
     updated_by INT, 
-    FOREIGN KEY (created_by) REFERENCES users(id), 
-    FOREIGN KEY (updated_by) REFERENCES users(id), 
-    FOREIGN KEY (customer_id) REFERENCES customers(id), 
-    INDEX idx_order_number_display (number_display), 
+    FOREIGN KEY (customer_id) REFERENCES customers(id),
+    FOREIGN KEY (created_by) REFERENCES users(id),
+    FOREIGN KEY (updated_by) REFERENCES users(id),
     INDEX idx_date (date), 
-    INDEX idx_status (status) 
-); 
+    INDEX idx_status (status)
+);
  
 CREATE TABLE order_details ( 
     id INT PRIMARY KEY AUTO_INCREMENT, 
@@ -109,37 +108,36 @@ CREATE TABLE order_details (
 CREATE TABLE billings ( 
     id INT PRIMARY KEY AUTO_INCREMENT, 
     order_id INT NOT NULL, 
-    number_display VARCHAR(50), 
-    tax DECIMAL(10,2) DEFAULT 0 CHECK (tax >= 0) NOT NULL, 
-    total DECIMAL(10,2) DEFAULT 0 CHECK (total >= 0) NOT NULL, 
-    status ENUM('unpaid', 'paid', 'cancelled', 'refunded') DEFAULT 'unpaid', 
+    number_display VARCHAR(50) UNIQUE, 
+    tax DECIMAL(10,2) NOT NULL DEFAULT 0 CHECK (tax >= 0), 
+    total DECIMAL(10,2) NOT NULL DEFAULT 0 CHECK (total >= 0), 
+    status ENUM('unpaid', 'paid', 'cancelled', 'refunded') NOT NULL DEFAULT 'unpaid', 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
-    updated_at TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    created_by INT NOT NULL, 
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_by INT NOT NULL,
     updated_by INT, 
-    FOREIGN KEY (created_by) REFERENCES users(id), 
-    FOREIGN KEY (updated_by) REFERENCES users(id), 
-    FOREIGN KEY (order_id) REFERENCES orders(id), 
-    INDEX idx_billing_number_display (number_display), 
+    FOREIGN KEY (order_id) REFERENCES orders(id),
+    FOREIGN KEY (created_by) REFERENCES users(id),
+    FOREIGN KEY (updated_by) REFERENCES users(id),
     INDEX idx_status (status)
-); 
+);
  
 CREATE TABLE payments ( 
     id INT PRIMARY KEY AUTO_INCREMENT, 
     billing_id INT NOT NULL, 
     date DATETIME NOT NULL, 
-    amount DECIMAL(10,2) DEFAULT 0 CHECK (amount >= 0) NOT NULL, 
+    amount DECIMAL(10,2) NOT NULL DEFAULT 0 CHECK (amount >= 0), 
     method ENUM('credit_card', 'va', 'transfer') NOT NULL, 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
-    updated_at TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    created_by INT NOT NULL, 
-    updated_by INT, 
-    FOREIGN KEY (created_by) REFERENCES users(id), 
-    FOREIGN KEY (updated_by) REFERENCES users(id), 
-    FOREIGN KEY (billing_id) REFERENCES billings(id), 
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_by INT NOT NULL,
+    updated_by INT,
+    FOREIGN KEY (billing_id) REFERENCES billings(id),
+    FOREIGN KEY (created_by) REFERENCES users(id),
+    FOREIGN KEY (updated_by) REFERENCES users(id),
     INDEX idx_date (date), 
-    INDEX idx_method (method) 
-); 
+    INDEX idx_method (method)
+);
 
 
 INSERT INTO users (username, email, password, role)
