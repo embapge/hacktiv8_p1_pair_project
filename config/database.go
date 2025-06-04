@@ -25,7 +25,8 @@ func InitDB() *sql.DB {
 	dbname := os.Getenv("DB_NAME")
 
 	//buat koneksi dsn
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", user, pass, host, port, dbname)
+	loc := "&loc=Asia%2FJakarta"
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true%s", user, pass, host, port, dbname, loc)
 
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {

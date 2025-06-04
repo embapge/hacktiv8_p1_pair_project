@@ -77,7 +77,7 @@ CREATE TABLE orders (
     customer_id INT NOT NULL, 
     number_display VARCHAR(50), 
     date DATE NOT NULL, 
-    status ENUM('processing', 'completed', 'cancel') DEFAULT('processing') NOT NULL,
+    status ENUM('processing', 'completed', 'cancel') DEFAULT 'processing' NOT NULL,
     total DECIMAL(10,2) DEFAULT 0 CHECK (total >= 0) NOT NULL, 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
     updated_at TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -110,6 +110,8 @@ CREATE TABLE billings (
     id INT PRIMARY KEY AUTO_INCREMENT, 
     order_id INT NOT NULL, 
     number_display VARCHAR(50), 
+    issue_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    due_date TIMESTAMP,
     tax DECIMAL(10,2) DEFAULT 0 CHECK (tax >= 0) NOT NULL, 
     total DECIMAL(10,2) DEFAULT 0 CHECK (total >= 0) NOT NULL, 
     status ENUM('unpaid', 'paid', 'cancelled', 'refunded') DEFAULT 'unpaid', 
@@ -127,7 +129,7 @@ CREATE TABLE billings (
 CREATE TABLE payments ( 
     id INT PRIMARY KEY AUTO_INCREMENT, 
     billing_id INT NOT NULL, 
-    date DATETIME NOT NULL, 
+    date DATETIME DEFAULT CURRENT_TIMESTAMP, 
     amount DECIMAL(10,2) DEFAULT 0 CHECK (amount >= 0) NOT NULL, 
     method ENUM('credit_card', 'va', 'transfer') NOT NULL, 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
@@ -140,6 +142,153 @@ CREATE TABLE payments (
     INDEX idx_date (date), 
     INDEX idx_method (method) 
 ); 
+
+-- Store Procedure
+
+DELIMITER $$
+
+CREATE PROCEDURE sp_update_order_total(IN p_order_id INT)
+BEGIN
+    DECLARE v_total DECIMAL(10,2);
+
+    SELECT IFNULL(SUM(od.qty * p.price), 0)
+    INTO v_total
+    FROM order_details od
+    JOIN products p ON od.product_id = p.id
+    WHERE od.order_id = p_order_id;
+
+    UPDATE orders
+    SET total = v_total
+    WHERE id = p_order_id;
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+DELIMITER $$
+
+CREATE PROCEDURE ValidatePaymentAmount(
+    IN p_billing_id INT,
+    IN inputAmount DECIMAL(10,2),
+    OUT is_valid BOOLEAN
+)
+BEGIN
+    DECLARE current_payment_total DECIMAL(10,2) DEFAULT 0;
+    DECLARE billing_total DECIMAL(10,2) DEFAULT 0;
+
+    -- Hitung total pembayaran untuk billing ini
+    SELECT IFNULL(SUM(amount), 0) + inputAmount
+    INTO current_payment_total
+    FROM payments
+    WHERE billing_id = p_billing_id;
+
+    -- Ambil nilai total tagihan dari billing
+    SELECT total
+    INTO billing_total
+    FROM billings
+    WHERE id = p_billing_id;
+
+    -- Jika billing tidak ditemukan, validasi jadi false
+    IF billing_total IS NULL THEN
+        SET is_valid = FALSE;
+    ELSE
+        -- Validasi apakah pembayaran masih dalam batas
+        SET is_valid = (current_payment_total <= billing_total);
+    END IF;
+END $$
+
+DELIMITER ;
+
+-- End Store Procedure
+
+-- Trigger
+DELIMITER $$
+
+CREATE TRIGGER trg_order_details_after_insert
+AFTER INSERT ON order_details
+FOR EACH ROW
+BEGIN
+    CALL sp_update_order_total(NEW.order_id);
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+CREATE TRIGGER trg_order_details_after_update
+AFTER UPDATE ON order_details
+FOR EACH ROW
+BEGIN
+    -- Recalculate for both old and new order ID in case the order_id was changed
+    IF OLD.order_id != NEW.order_id THEN
+        CALL sp_update_order_total(OLD.order_id);
+    END IF;
+    CALL sp_update_order_total(NEW.order_id);
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+CREATE TRIGGER trg_order_details_after_delete
+AFTER DELETE ON order_details
+FOR EACH ROW
+BEGIN
+    CALL sp_update_order_total(OLD.order_id);
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+CREATE TRIGGER trg_payment_before_insert
+BEFORE INSERT ON payments
+FOR EACH ROW
+BEGIN
+    DECLARE is_valid BOOLEAN;
+
+    -- Panggil stored procedure dan simpan hasil ke variabel lokal
+    CALL ValidatePaymentAmount(NEW.billing_id, NEW.amount, is_valid);
+
+    -- Cek validasi (gunakan NOT, bukan !)
+    IF NOT is_valid THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Total payment exceeds billing total';
+    END IF;
+END $$
+
+DELIMITER ;
+
+DELIMITER $$
+
+CREATE TRIGGER trg_payment_before_update
+BEFORE UPDATE ON payments
+FOR EACH ROW
+BEGIN
+    DECLARE is_valid_old BOOLEAN;
+    DECLARE is_valid_new BOOLEAN;
+
+    -- Validasi terhadap billing_id lama
+    IF OLD.billing_id != NEW.billing_id THEN
+	    CALL ValidatePaymentAmount(OLD.billing_id, NEW.amount, @is_valid_old);
+	    SET is_valid_old = @is_valid_old;
+	 END IF;
+
+    -- Validasi terhadap billing_id baru
+    CALL ValidatePaymentAmount(NEW.billing_id, NEW.amount, @is_valid_new);
+    SET is_valid_new = @is_valid_new;
+
+    -- Gagal jika salah satu tidak valid
+    IF NOT is_valid_old OR NOT is_valid_new THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Total payment exceeds billing total (on old or new billing)';
+    END IF;
+END$$
+
+DELIMITER ;
+
+-- End Trigger
 
 
 INSERT INTO users (username, email, password, role)

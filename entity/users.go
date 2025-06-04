@@ -14,6 +14,7 @@ type User struct {
 	Username	string
 	Email		string
 	Role		Role
+	Customer	Customer
 	Password	string
 	CreateAt	time.Time
 	UpdatedAt 	time.Time

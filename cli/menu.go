@@ -10,14 +10,34 @@ import (
 	"pairproject/entity"
 	"pairproject/handler"
 	"pairproject/utils"
+	"strconv"
 	"strings"
 )
 
 var products = []string{"Bola", "Decker", "Stick Baseball", "Stick Golf"}
 var scanner = bufio.NewScanner(os.Stdin)
 
-func Menu(db *sql.DB, ctx *context.Context) {
+type cliHandler struct {
+	db  *sql.DB
+	ctx context.Context
+}
+
+func NewCLIHandler(db *sql.DB, ctx context.Context) *cliHandler {
+	return &cliHandler{
+		db:  db,
+		ctx: ctx,
+	}
+}
+
+func (c *cliHandler) Menu() {
 	MainMenu: for{
+		user, ok := utils.GetUser(c.ctx)
+		if !ok {
+			fmt.Println("Belum login")
+		}else{
+			fmt.Println("Login", user)
+		}
+
 		fmt.Println("=== Welcome to Bandit Sports ===")
 		fmt.Println("1. Login")
 		fmt.Println("2. Register")
@@ -28,24 +48,29 @@ func Menu(db *sql.DB, ctx *context.Context) {
 	
 		switch choice {
 		case "1":
-			ctx, err := handleLogin(db, ctx)
+			err := c.handleLogin()
 			if err != nil {
-				log.Fatal(err)
+				fmt.Println("Username or password incorrect please loggin again.")
 				continue MainMenu
 			}
 	
-			showAdminMenu(&ctx)
+			c.showLoggedInMenu()
 		case "2":
-			handleRegister(db)
+			c.handleRegister()
 		case "3":
-			showProducts()
+			productHandler := handler.ProductHandler{DB: c.db}
+			products, _ := productHandler.GetProducts()
+			PrintProducts(products)
+		case "4":
+			fmt.Println("Thanks For Shopping")
+			break MainMenu
 		default:
 			fmt.Println("Invalid option.")
 		}
 	}
 }
 
-func handleLogin(db *sql.DB, ctx *context.Context) (context.Context, error) {
+func (c *cliHandler) handleLogin() error {
 	fmt.Println("=== Login ===")
 	fmt.Print("Username: ")
 	username := readInput()
@@ -56,32 +81,34 @@ func handleLogin(db *sql.DB, ctx *context.Context) (context.Context, error) {
 	password = strings.TrimSpace(password)
 
 	// Simulasi user lookup
-	userHandler := handler.AuthHandler{DB: db}
+	userHandler := handler.AuthHandler{DB: c.db}
 	user, err := userHandler.LoginUser(username, password)
 
 	if err != nil{
-		return *ctx, err
+		return err
 	}
 
-	return utils.WithUser(*ctx, user), nil
+	c.ctx = utils.WithUser(c.ctx, user)
+
+	return nil
 }
 
-func handleRegister(db *sql.DB) {
+func (c *cliHandler) handleRegister() {
 	fmt.Println("=== Register ===")
-	var user entity.CustomerRegister
+	var userRegis entity.CustomerRegister
 
 	fmt.Print("Full Name: ")
-	user.Name = readInput()
+	userRegis.Name = readInput()
 	fmt.Print("Address: ")
-	user.Address = readInput()
+	userRegis.Address = readInput()
 	fmt.Print("Email: ")
-	user.Email = readInput()
+	userRegis.Email = readInput()
 	fmt.Print("Phone Number: ")
-	user.Phone = readInput()
+	userRegis.Phone = readInput()
 
 	fmt.Println("\nCreate Login Credentials:")
 	fmt.Print("Username: ")
-	user.Username = readInput()
+	userRegis.Username = readInput()
 	fmt.Print("Password: ")
 	password := readInput()
 	fmt.Print("Confirm Password: ")
@@ -91,12 +118,12 @@ func handleRegister(db *sql.DB) {
 		fmt.Println("Passwords do not match.")
 		return
 	}
-	user.Password = password
+	userRegis.Password = password
 
 	// Eksekusi handler.
 
-	authHandler := handler.AuthHandler{DB: db}
-	message, err := authHandler.Register(&user)
+	authHandler := handler.AuthHandler{DB: c.db}
+	message, err := authHandler.Register(&userRegis)
 
 	if err != nil{
 		log.Fatal(err)
@@ -113,8 +140,8 @@ func showProducts() {
 	fmt.Println()
 }
 
-func showAdminMenu(ctx *context.Context) {
-	user, ok := utils.GetUser(*ctx)
+func (c *cliHandler) showLoggedInMenu() {
+	user, ok := utils.GetUser(c.ctx)
 	
 	if !ok {
 		fmt.Println("Failed to get user from context.")
@@ -124,29 +151,280 @@ func showAdminMenu(ctx *context.Context) {
 	role := user.Role
 
 	if role == "admin" {
-		fmt.Println("=== Admin Menu ===")
-		fmt.Println("1. Create Category")
-		fmt.Println("2. Create Product")
-		fmt.Println("3. Report Most Sold Items")
-		fmt.Println("4. Report Unpaid Bills")
-		fmt.Println("5. Detail Revenue")
-		fmt.Println("6. Exit")
-		fmt.Print("Choose option: ")
-		_ = readInput()
-		fmt.Println("Returning to main menu...")
+		c.adminMenu()
 	} else if role == "customer" {
-		fmt.Println("=== Customer Menu ===")
-		fmt.Println("1. Add Order & Billing")
-		fmt.Println("2. Update Order")
-		fmt.Println("3. Add Payment")
-		fmt.Println("4. Log Out")
-		fmt.Print("Choose option: ")
-		_ = readInput()
+		c.customerMenu()
+	}
+}
+
+func (c *cliHandler) adminMenu(){
+	fmt.Println("=== Admin Menu ===")
+	fmt.Println("1. Create Category")
+	fmt.Println("2. Create Product")
+	fmt.Println("3. Report Most Sold Items")
+	fmt.Println("4. Report Unpaid Bills")
+	fmt.Println("5. Detail Revenue")
+	fmt.Println("6. Logout")
+	fmt.Print("Choose option: ")
+	option := readInput()
+
+	switch option{
+	case "1":
+	case "2":
+	case "3":
+	case "4":
+	case "5":
+	case "6":
+		fmt.Println("User Logout...")
+		c.ctx = utils.ClearUser(c.ctx)
+	default:
 		fmt.Println("Returning to main menu...")
+	}
+}
+
+func (c *cliHandler) customerMenu(){
+	orderHandler := handler.OrderHandler{DB: c.db, Ctx: &c.ctx}
+	billingHandler := handler.BillingHandler{DB: c.db, Ctx: &c.ctx}
+	CustomerMenuLabel: for{
+		fmt.Println("=== Customer Menu ===")
+		fmt.Println("1. Add Order")
+		fmt.Println("2. Create Billing")
+		fmt.Println("3. Update Order")
+		fmt.Println("4. Add Payment")
+		fmt.Println("5. Log Out")
+		fmt.Print("Choose option: ")
+		option := readInput()
+		
+		switch option{
+		case "1":
+			productHandler := handler.ProductHandler{DB: c.db}
+			products, err := productHandler.GetProducts()
+			if err != nil{
+				var p []entity.Product
+				products = p
+			}
+		
+			fmt.Println("List Product:")
+		
+			for _, p := range products{
+				fmt.Printf("Id: %d, Name: %s, Category: %s, Stock: %d, Price: %.2f, Description: %s\n", p.ID, p.Name, p.Category.Name, p.Stock, p.Price, p.Description)
+			}
+		
+			fmt.Println("")
+			
+			var orders []entity.OrderProduct
+			isStillOrder := "y"
+			for{
+				fmt.Print("Masukkan ProductId: ")
+				productIdStr := readInput()
+				productId, err := strconv.Atoi(productIdStr)
+				if err != nil {
+					fmt.Println("Invalid ProductId. Please enter a number.")
+					continue
+				}
+				fmt.Print("Masukkan Qty: ")
+				qtyStr := readInput()
+				qty, err := strconv.Atoi(qtyStr)
+				if err != nil {
+					fmt.Println("Invalid Qty. Please enter a number.")
+					continue
+				}
+		
+				orders = append(orders, entity.OrderProduct{ProductId: productId, Qty: qty})
+		
+				fmt.Print("Masih ingin memesan (y/n): ")
+				isStillOrder = readInput()
+		
+				if isStillOrder != "y"{
+					break
+				}
+			}
+		
+			_, err = orderHandler.CreateOrder(orders)
+			if err != nil{
+				fmt.Printf("%v\n\n", err)
+				continue CustomerMenuLabel
+			}
+
+			fmt.Println("Order berhasil dibuat.")
+
+			// fmt.Printf("%-10s %-15s %-12s %-10s %-10s\n", "Order ID", "NumberDisplay", "Order Date", "Status", "Total")
+			// fmt.Println(strings.Repeat("-", 60))
+			// fmt.Printf("%-10d %-15s %-12s %-10s %-10.2f\n", getOrder.ID, getOrder.NumberDisplay, getOrder.Date, getOrder.Status, getOrder.Total)
+			// fmt.Printf("%-20s %-10s %-20s %-8s %-10s\n", "OrderDetailID", "ProductID", "Name", "Qty", "Subtotal")
+			// for _, detail := range getOrder.Details {
+			// 	fmt.Printf("%-20d %-10d %-20s %-8d %-10.2f\n", detail.ID,detail.ProductID, detail.Product.Name, detail.Qty, detail.Total)
+			// }
+			// fmt.Println(strings.Repeat("-", 60))
+		case "2":
+			orders, err := orderHandler.GetOrders()
+			if err != nil {
+				fmt.Println("Failed to get orders:", err)
+				return
+			}
+			printOrders(orders)
+
+			fmt.Print("Silahkan masuk nomor order: ")
+			orderNumber := readInput()
+		
+			var filteredOrder entity.Order
+			var findOrder bool
+			for _, order := range orders {
+				if order.NumberDisplay == orderNumber {
+					filteredOrder = order
+					findOrder = true
+					break
+				}
+			}
+		
+			if !findOrder {
+				fmt.Printf("Order id tidak ditemukan.\n\n")
+				break;
+			}
+		
+			billing, err := billingHandler.GenerateBill(filteredOrder)
+			if err != nil{
+				fmt.Printf("%v.\n\n", err)
+				break
+			}
+		
+			fmt.Printf("Silahkan melakukan pembayaran atas tagihan: %s dengan nominal: %.2f maksimal di pukul: %s\n\n", billing.NumberDisplay, billing.Total, billing.DueDate)
+		case "3":
+			orders, err := orderHandler.GetOrders()
+			if err != nil {
+				fmt.Println("Failed to get orders:", err)
+				return
+			}
+			
+			printOrders(orders)
+			fmt.Print("Silahkan masuk id order detail: ")
+			orderDetailIdStr := readInput()
+			orderDetailId, err := strconv.Atoi(orderDetailIdStr)
+			if err != nil {
+				fmt.Println("Invalid ProductId. Please enter a number.")
+				continue
+			}
+			fmt.Print("Kuantitas baru: ")
+			qtyStr := readInput()
+			qty, err := strconv.Atoi(qtyStr)
+			if err != nil {
+				fmt.Println("Invalid Qty. Please enter a number.")
+				continue
+			}
+
+			orderDetailHandler := handler.OrderDetailHandler{DB: c.db, Ctx: &c.ctx}
+			_, err = orderDetailHandler.UpdateDetail(orderDetailId, qty)
+
+			if err != nil{
+				fmt.Printf("%v\n\n", err)
+				return
+			}
+		case "4":
+			var paymentMethod entity.Method
+			var isOkPay bool
+			paymentHandler := handler.PaymentHandler{DB: c.db, Ctx: &c.ctx}
+			for {
+				fmt.Print("Silahkan masukan nomor bill: ")
+				billNumberDisplay := readInput()
+				billing, err := billingHandler.GetBillByNumberDisplay(billNumberDisplay)
+				if err != nil{
+					fmt.Printf("%v\n\n", err)
+					continue
+				}
+
+				fmt.Println("===== List Jenis Pembayaran =====")
+				fmt.Printf("- %s\n", entity.MethodCredit)
+				fmt.Printf("- %s\n", entity.MethodVA)
+				fmt.Printf("- %s\n", entity.MethodTransfer)
+				fmt.Print("Silahkan masukan jenis pembayaran: ")
+				paymentMethodInput := readInput()
+
+				if paymentMethodInput == string(entity.MethodCredit){
+					paymentMethod = entity.MethodCredit
+					isOkPay = true
+				}else if paymentMethodInput == string(entity.MethodVA){
+					paymentMethod = entity.MethodVA
+					isOkPay = true
+				} else if paymentMethodInput == string(entity.MethodTransfer){
+					paymentMethod = entity.MethodTransfer
+					isOkPay = true
+				}
+
+				if !isOkPay {
+					fmt.Println("Input tidak valid. Silahkan input ulang")
+					continue
+				}
+
+				fmt.Print("Nominal Pembayaran: ")
+				amountInput := readInput()
+
+				amount, err := strconv.ParseFloat(amountInput, 64)
+				if err != nil {
+					fmt.Println("Error converting amount:", err)
+					return
+				}
+
+				err = paymentHandler.CreatePayment(billing, amount, paymentMethod)
+				if err != nil{
+					fmt.Println(err)
+				}else{
+					fmt.Println("Pembayaran berhasil dibuat.")
+				}
+
+				break
+			}
+		case "5":
+			c.ctx = utils.ClearUser(c.ctx)
+			break CustomerMenuLabel
+		default:		
+			fmt.Println("Returning to main menu...")
+			break
+		}
 	}
 }
 
 func readInput() string {
 	scanner.Scan()
 	return strings.TrimSpace(scanner.Text())
+}
+
+func printOrders(orders []entity.Order){
+	fmt.Printf("\n===== List Order =====\n")
+	if len(orders) == 0 {
+		fmt.Println("No orders found.")
+		return
+	}
+
+	fmt.Printf("%-10s %-15s %-12s %-10s %-10s\n", "Order ID", "NumberDisplay", "Order Date", "Status", "Total")
+	fmt.Println(strings.Repeat("-", 60))
+	for _, order := range orders {
+		fmt.Printf("%-10d %-15s %-12s %-10s %-10.2f\n", order.ID, order.NumberDisplay, order.Date, order.Status, order.Total)
+		fmt.Printf("%-20s %-10s %-20s %-8s %-10s\n", "OrderDetailID", "ProductID", "Name", "Qty", "Subtotal")
+		for _, detail := range order.Details {
+			fmt.Printf("%-20d %-10d %-20s %-8d %-10.2f\n", detail.ID,detail.ProductID, detail.Product.Name, detail.Qty, detail.Total)
+		}
+		fmt.Println(strings.Repeat("-", 60))
+	}
+}
+
+func PrintProducts(products []entity.Product) {
+	fmt.Printf("%-5s %-20s %-6s %-10s %-15s %-10s\n", "ID", "Name", "Stock", "Price", "Category", "Description")
+	fmt.Println(strings.Repeat("-", 70))
+	for _, p := range products {
+		fmt.Printf("%-5d %-20s %-6d %-10.2f %-15s %-10s\n",
+			p.ID,
+			p.Name,
+			p.Stock,
+			p.Price,
+			p.Category.Name,
+			truncateString(p.Description, 10),
+		)
+	}
+}
+
+func truncateString(s string, maxLen int) string {
+	if len(s) > maxLen {
+		return s[:maxLen-3] + "..."
+	}
+	return s
 }

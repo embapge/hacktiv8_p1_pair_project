@@ -63,9 +63,9 @@ func (h *AuthHandler) LoginUser(username, password string) (*entity.User, error)
 	var user entity.User
 
 	err := h.DB.QueryRow(
-		"SELECT id, username, email, role, password FROM users WHERE username = ? AND password = ?", 
+		"SELECT id, username, email, role, password, user_customers.customer_id FROM users JOIN user_customers on user_customers.user_id = users.id WHERE username = ? AND password = ?", 
 		strings.TrimSpace(username), strings.TrimSpace(password),
-	).Scan(&user.ID, &user.Username, &user.Email, &user.Role, &user.Password)
+	).Scan(&user.ID, &user.Username, &user.Email, &user.Role, &user.Password, &user.Customer.ID)
 
 	fmt.Println("Ketik User:", username)
 	fmt.Println("Hashed User:", user)
