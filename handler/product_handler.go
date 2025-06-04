@@ -1,12 +1,16 @@
 package handler
 
 import (
+	"context"
 	"database/sql"
+	"fmt"
 	"pairproject/entity"
+	"pairproject/utils"
 )
 
 type ProductHandler struct {
 	DB *sql.DB
+	Ctx *context.Context
 }
 
 
@@ -32,4 +36,25 @@ func (p *ProductHandler) GetProducts() ([]entity.Product, error) {
 	}
 
 	return products, nil
+}
+
+func (p *ProductHandler) CreateProduct(product entity.Product)(error){
+	user, ok := utils.GetUser(*p.Ctx)
+	if !ok {
+		return fmt.Errorf("Please Login!")
+	}
+
+	// Query SQL untuk menyisipkan data produk baru ke tabel 'products'
+	query := `
+			INSERT INTO products (name, stock, description, category_id, price, created_by)
+			VALUES (?, ?, ?, ?, ?, ?)
+	`
+
+	// Menjalankan query dengan parameter dari input produk
+	_, err := p.DB.Exec(query, product.Name, product.Stock, product.Description, product.CategoryID, product.Price, user.ID)
+	if err != nil {
+		return fmt.Errorf("Terjadi kesalahan ketika membuat produk")
+	}
+
+	return nil
 }

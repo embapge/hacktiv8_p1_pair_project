@@ -104,8 +104,8 @@ func (c *cliHandler) Menu() {
 			products, _ := productHandler.GetProducts()
 			PrintProducts(products)
 		case "4":
-			fmt.Println("Thanks For Shopping")
-			break MainMenu
+			fmt.Println("Exiting program. Goodbye!")
+			os.Exit(0)
 		default:
 			fmt.Println("Invalid option.")
 		}
@@ -193,27 +193,123 @@ func (c *cliHandler) showLoggedInMenu() {
 }
 
 func (c *cliHandler) adminMenu(){
-	fmt.Println("=== Admin Menu ===")
-	fmt.Println("1. Create Category")
-	fmt.Println("2. Create Product")
-	fmt.Println("3. Report Most Sold Items")
-	fmt.Println("4. Report Unpaid Bills")
-	fmt.Println("5. Detail Revenue")
-	fmt.Println("6. Logout")
-	fmt.Print("Choose option: ")
-	option := readInput()
+	categoryHandler := handler.CategoryHandler{DB: c.db, Ctx: &c.ctx}
+	productHandler := handler.ProductHandler{DB: c.db, Ctx: &c.ctx}
+	reportHandler := handler.ReportHandler{DB: c.db}
+	AdminMenuLabel: for{
+		fmt.Println("=== Admin Menu ===")
+		fmt.Println("1. Create Category")
+		fmt.Println("2. Create Product")
+		fmt.Println("3. Report Most Sold Items")
+		fmt.Println("4. Report Unpaid Bills")
+		fmt.Println("5. Detail Revenue")
+		fmt.Println("6. Logout")
+		fmt.Print("Choose option: ")
+		choice := readInput()
+	
+		switch choice{
+		case "1":
+			fmt.Print("Enter category name: ")
+			categoryName := readInput()
+			err := categoryHandler.CreateCategory(categoryName)
+			if err!= nil{
+				fmt.Println(err)
+			}else{
+				fmt.Println("Kategori berhasil dibuat")
+			}
+		case "2":
+			var product entity.Product
+			fmt.Print("Enter product name: ")
+			product.Name = readInput()
 
-	switch option{
-	case "1":
-	case "2":
-	case "3":
-	case "4":
-	case "5":
-	case "6":
-		fmt.Println("User Logout...")
-		c.ctx = utils.ClearUser(c.ctx)
-	default:
-		fmt.Println("Returning to main menu...")
+			fmt.Print("Enter product stock: ")
+			stockInput := readInput()
+			_, err := fmt.Sscanf(stockInput, "%d", &product.Stock)
+			if err != nil {
+					fmt.Println("Invalid stock value.")
+					break
+			}
+			fmt.Print("Enter category ID: ")
+			categoryInput := readInput()
+			_, err = fmt.Sscanf(categoryInput, "%d", &product.CategoryID)
+			if err != nil {
+				fmt.Println("Invalid category ID.")
+				break
+			}
+
+			fmt.Print("Enter product description: ")
+			product.Description = readInput()
+
+			fmt.Print("Enter product price: ")
+			priceInput := readInput()
+			_, err = fmt.Sscanf(priceInput, "%f", &product.Price)
+			if err != nil {
+				fmt.Println("Invalid price.")
+				break
+			}
+			err = productHandler.CreateProduct(product)
+			if err!= nil{
+				fmt.Println(err)
+			}else{
+				fmt.Println("Product berhasil dibuat")
+			}
+		case "3":
+			result, err := reportHandler.GetMostSoldProducts()
+			if err != nil {
+					fmt.Println("Error fetching report:", err)
+					break
+			}
+
+			fmt.Println("=== Most Sold Products ===")
+			for i, item := range result {
+					fmt.Printf("%d. %s (Sold: %d)\n", i+1, item.Name, item.TotalSold)
+			}
+		case "4":
+			unpaidBills, err := reportHandler.GetUnpaidBills()
+			if err != nil {
+				fmt.Println("Error fetching unpaid bills:", err)
+				break
+			}
+
+			if len(unpaidBills) == 0 {
+				fmt.Println("No unpaid bills found.")
+				break
+			}
+
+			fmt.Println("=== Unpaid Bills Report ===")
+			fmt.Printf("%-5s | %-17s | %-16s | %-20s | %-10s | %-10s | %-10s | %-20s\n", "ID", "Bill No", "Order No", "Customer", "Tax", "Total", "Status", "Created At")
+			fmt.Println(strings.Repeat("-", 110))
+			for _, bill := range unpaidBills {
+				fmt.Printf("%-5d | %-15s | %-15s | %-20s | %-10.2f | %-10.2f | %-10s | %-20s\n", bill.ID, bill.BillNumber, bill.OrderNumber, bill.CustomerName,
+						bill.Tax, bill.Total, bill.Status, bill.CreatedAt)
+			}
+		case "5":
+			revenueList, err := reportHandler.GetRevenueDetails()
+			if err != nil {
+				fmt.Println("Error fetching revenue details:", err)
+				break
+			}
+
+			if len(revenueList) == 0 {
+				fmt.Println("No revenue data found.")
+				break
+			}
+
+			// Format laporan detail revenue
+			fmt.Println("=== Revenue Detail Report ===")
+			fmt.Printf("%-17s | %-20s | %-10s | %-12s | %-20s | %-15s\n",
+					"Bill No", "Payment Date", "Amount", "Method", "Customer", "Order No")
+			fmt.Println(strings.Repeat("-", 100))
+			for _, r := range revenueList {
+				fmt.Printf("%-15s | %-20s | %-10.2f | %-12s | %-20s | %-15s\n", r.BillNumber, r.PaymentDate, r.Amount, r.Method, r.CustomerName, r.OrderNumber)
+			}
+		case "6":
+			fmt.Println("User Logout...")
+			c.ctx = utils.ClearUser(c.ctx)
+			break AdminMenuLabel
+		default:
+			fmt.Println("Returning to main menu...")
+		}
 	}
 }
 
