@@ -17,6 +17,7 @@ type Billing struct {
 	OrderID 		int
 	NumberDisplay	string
 	Tax				float64
+	Total			float64
 	Status			StatusBilling
 	CreatedAt		time.Time
 	UpdatedAt		time.Time

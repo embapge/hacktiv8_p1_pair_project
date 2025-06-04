@@ -4,7 +4,7 @@ import "time"
 
 type Product struct{
 	ID			int
-	Name		int
+	Name		string
 	Stock		int
 	Description	string
 	CategoryID	int
