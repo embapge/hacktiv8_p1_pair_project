@@ -168,35 +168,39 @@ DELIMITER $$
 
 DELIMITER $$
 
-CREATE PROCEDURE ValidatePaymentAmount(
-    IN p_billing_id INT,
-    IN inputAmount DECIMAL(10,2),
-    OUT is_valid BOOLEAN
+CREATE PROCEDURE ValidatePaymentAmount (
+    IN  p_billing_id    INT,
+    IN  adjustment      DECIMAL(10,2),
+    OUT is_valid        BOOLEAN
 )
 BEGIN
     DECLARE current_payment_total DECIMAL(10,2) DEFAULT 0;
-    DECLARE billing_total DECIMAL(10,2) DEFAULT 0;
+    DECLARE billing_total         DECIMAL(10,2) DEFAULT 0;
 
-    -- Hitung total pembayaran untuk billing ini
-    SELECT IFNULL(SUM(amount), 0) + inputAmount
+    -- 1. Hitung total pembayaran untuk billing ini, KECUALI baris pembayaran yang sedang di-update
+    SELECT IFNULL(SUM(amount), 0)
     INTO current_payment_total
     FROM payments
     WHERE billing_id = p_billing_id;
 
-    -- Ambil nilai total tagihan dari billing
+    -- 2. Terapkan adjustment (bisa positif untuk INSERT/UPDATE billing baru,
+    --    atau negatif untuk “mengurangi” jumlah lama saat billing_id lama)
+    SET current_payment_total = current_payment_total + adjustment;
+
+    -- 3. Ambil total tagihan (billing) dari tabel billings
     SELECT total
     INTO billing_total
     FROM billings
     WHERE id = p_billing_id;
 
-    -- Jika billing tidak ditemukan, validasi jadi false
+    -- 4. Jika billing_id tidak ditemukan, is_valid = FALSE
     IF billing_total IS NULL THEN
         SET is_valid = FALSE;
     ELSE
-        -- Validasi apakah pembayaran masih dalam batas
+        -- Lolos validasi jika total pembayaran (setelah adjustment) ≤ billing_total
         SET is_valid = (current_payment_total <= billing_total);
     END IF;
-END $$
+END$$
 
 DELIMITER ;
 
@@ -260,34 +264,6 @@ END $$
 
 DELIMITER ;
 
-DELIMITER $$
-
-CREATE TRIGGER trg_payment_before_update
-BEFORE UPDATE ON payments
-FOR EACH ROW
-BEGIN
-    DECLARE is_valid_old BOOLEAN;
-    DECLARE is_valid_new BOOLEAN;
-
-    -- Validasi terhadap billing_id lama
-    IF OLD.billing_id != NEW.billing_id THEN
-	    CALL ValidatePaymentAmount(OLD.billing_id, NEW.amount, @is_valid_old);
-	    SET is_valid_old = @is_valid_old;
-	 END IF;
-
-    -- Validasi terhadap billing_id baru
-    CALL ValidatePaymentAmount(NEW.billing_id, NEW.amount, @is_valid_new);
-    SET is_valid_new = @is_valid_new;
-
-    -- Gagal jika salah satu tidak valid
-    IF NOT is_valid_old OR NOT is_valid_new THEN
-        SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Total payment exceeds billing total (on old or new billing)';
-    END IF;
-END$$
-
-DELIMITER ;
-
 -- End Trigger
 
 
@@ -333,8 +309,8 @@ VALUES
 
 INSERT INTO orders (customer_id, number_display, date, status, total, created_by, updated_by)
 VALUES 
-(1, 'ORD-20250601-001', '2025-06-01', 'completed', 1700000.00, 2, 2),
-(2, 'ORD-20250601-002', '2025-06-01', 'processing', 630000.00, 3, 3);
+(1, 'ORD-202506-001', '2025-06-01', 'completed', 1700000.00, 2, 2),
+(2, 'ORD-202506-002', '2025-06-01', 'processing', 630000.00, 3, 3);
 
 -- Order 1: Dumbbell + Whey Protein
 INSERT INTO order_details (order_id, product_id, qty, created_by, updated_by)
@@ -351,12 +327,12 @@ VALUES
 -- Billing for Order 1
 INSERT INTO billings (order_id, number_display, tax, total, status, created_by, updated_by)
 VALUES 
-(1, 'BILL-20250601-001', 50000.00, 1700000.00, 'paid', 2, 2);
+(1, 'BILL-202506-001', 50000.00, 1700000.00, 'paid', 2, 2);
 
 -- Billing for Order 2
 INSERT INTO billings (order_id, number_display, tax, total, status, created_by, updated_by)
 VALUES 
-(2, 'BILL-20250601-002', 30000.00, 630000.00, 'unpaid', 3, 3);
+(2, 'BILL-202506-002', 30000.00, 630000.00, 'unpaid', 3, 3);
 
 -- Payment for Billing 1
 INSERT INTO payments (billing_id, date, amount, method, created_by, updated_by)

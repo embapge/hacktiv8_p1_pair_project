@@ -2,9 +2,12 @@ package handler
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"pairproject/entity"
 	"strings"
+
+	"github.com/go-sql-driver/mysql"
 )
 
 type AuthHandler struct {
@@ -12,7 +15,7 @@ type AuthHandler struct {
 }
 
 // // Fungsi untuk menambah user baru (contoh, bisa diubah sesuai kebutuhan)
-func (h *AuthHandler) Register(cust *entity.CustomerRegister) (string, error) {
+func (h *AuthHandler) Register(cust *entity.CustomerRegister) error {
 	// Insert user and return the inserted user ID
 	resultUser, err := h.DB.Exec(
 		"INSERT INTO users(username, email, password, role) VALUES (?, ?, ?, 'customer')",
@@ -20,12 +23,21 @@ func (h *AuthHandler) Register(cust *entity.CustomerRegister) (string, error) {
 	)
 
 	if err != nil {
-		return "", err
+		// Cek apakah error dari driver MySQL
+		var mysqlErr *mysql.MySQLError
+		if errors.As(err, &mysqlErr) {
+			if mysqlErr.Number == 1062 {
+				// Duplicate entry
+				return fmt.Errorf("duplicate entry. Silahkan gunakan data lainnya")
+			}
+		}
+		// Error lain
+		return err
 	}
 
 	userID, err := resultUser.LastInsertId()
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	result, err := h.DB.Exec(
@@ -38,12 +50,21 @@ func (h *AuthHandler) Register(cust *entity.CustomerRegister) (string, error) {
 	)
 	
 	if err != nil {
-		return "Gagal masuk data customer", err
+		// Cek apakah error dari driver MySQL
+		var mysqlErr *mysql.MySQLError
+		if errors.As(err, &mysqlErr) {
+			if mysqlErr.Number == 1062 {
+				// Duplicate entry
+				return fmt.Errorf("duplicate entry. Silahkan gunakan data lainnya")
+			}
+		}
+		// Error lain
+		return err
 	}
 
 	customerID, err := result.LastInsertId()
 	if err != nil {
-		return "Gagal mendapatkan ID customer", err
+		return err
 	}
 
 	_, err = h.DB.Exec(
@@ -52,23 +73,22 @@ func (h *AuthHandler) Register(cust *entity.CustomerRegister) (string, error) {
 	)
 
 	if err != nil {
-		return "", err
+		return errors.New("Terjadi kesalahan dalam mendaftarkan akun.")
 	}
 
-	return "Data berhasil masuk", nil
+	return nil
 }
 
 // Fungsi untuk login user
 func (h *AuthHandler) LoginUser(username, password string) (*entity.User, error) {
 	var user entity.User
+	var customerID sql.NullInt64
 
 	err := h.DB.QueryRow(
-		"SELECT id, username, email, role, password, user_customers.customer_id FROM users JOIN user_customers on user_customers.user_id = users.id WHERE username = ? AND password = ?", 
+		"SELECT id, username, email, role, password, user_customers.customer_id FROM users LEFT JOIN user_customers on user_customers.user_id = users.id WHERE username = ? AND password = ?", 
 		strings.TrimSpace(username), strings.TrimSpace(password),
-	).Scan(&user.ID, &user.Username, &user.Email, &user.Role, &user.Password, &user.Customer.ID)
+	).Scan(&user.ID, &user.Username, &user.Email, &user.Role, &user.Password, &customerID)
 
-	fmt.Println("Ketik User:", username)
-	fmt.Println("Hashed User:", user)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("Password atau username salah")
@@ -76,6 +96,12 @@ func (h *AuthHandler) LoginUser(username, password string) (*entity.User, error)
 		
 		return nil, err
 	}
+
+	if customerID.Valid {
+		user.Customer = entity.Customer{ID: int(customerID.Int64)}
+	} else {
+		user.Customer = entity.Customer{}
+	}	
 
 	return &user, nil
 }

@@ -5,7 +5,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"os"
 	"pairproject/entity"
 	"pairproject/handler"
@@ -31,14 +30,7 @@ func NewCLIHandler(db *sql.DB, ctx context.Context) *cliHandler {
 
 func (c *cliHandler) Menu() {
 	MainMenu: for{
-		user, ok := utils.GetUser(c.ctx)
-		if !ok {
-			fmt.Println("Belum login")
-		}else{
-			fmt.Println("Login", user)
-		}
-
-		fmt.Println("=== Welcome to Bandit Sports ===")
+		fmt.Println("\n\n=== Welcome to Bandit Sports ===")
 		fmt.Println("1. Login")
 		fmt.Println("2. Register")
 		fmt.Println("3. Products List")
@@ -48,15 +40,65 @@ func (c *cliHandler) Menu() {
 	
 		switch choice {
 		case "1":
-			err := c.handleLogin()
+			fmt.Println("=== Login ===")
+			fmt.Print("Username: ")
+			username := readInput()
+			fmt.Print("Password: ")
+			password := readInput()
+
+			username = strings.TrimSpace(username)
+			password = strings.TrimSpace(password)
+
+			// Simulasi user lookup
+			userHandler := handler.AuthHandler{DB: c.db}
+			user, err := userHandler.LoginUser(username, password)
+
 			if err != nil {
 				fmt.Println("Username or password incorrect please loggin again.")
 				continue MainMenu
 			}
-	
+
+			c.ctx = utils.WithUser(c.ctx, user)
 			c.showLoggedInMenu()
 		case "2":
-			c.handleRegister()
+			// c.handleRegister()
+			fmt.Println("=== Register ===")
+			var userRegis entity.CustomerRegister
+
+			fmt.Print("Full Name: ")
+			userRegis.Name = readInput()
+			fmt.Print("Address: ")
+			userRegis.Address = readInput()
+			fmt.Print("Email: ")
+			userRegis.Email = readInput()
+			fmt.Print("Phone Number: ")
+			userRegis.Phone = readInput()
+
+			fmt.Println("\nCreate Login Credentials:")
+			fmt.Print("Username: ")
+			userRegis.Username = readInput()
+			fmt.Print("Password: ")
+			password := readInput()
+			fmt.Print("Confirm Password: ")
+			confirm := readInput()
+
+			if password != confirm {
+				fmt.Println("Passwords do not match.")
+				return
+			}
+			userRegis.Password = password
+
+			// Eksekusi handler.
+
+			authHandler := handler.AuthHandler{DB: c.db}
+			err := authHandler.Register(&userRegis)
+
+			if err != nil{
+				fmt.Printf("%s\n\n", err)
+				continue
+			}
+
+			fmt.Println("Register successfully")
 		case "3":
 			productHandler := handler.ProductHandler{DB: c.db}
 			products, _ := productHandler.GetProducts()
@@ -70,75 +112,68 @@ func (c *cliHandler) Menu() {
 	}
 }
 
-func (c *cliHandler) handleLogin() error {
-	fmt.Println("=== Login ===")
-	fmt.Print("Username: ")
-	username := readInput()
-	fmt.Print("Password: ")
-	password := readInput()
+// func (c *cliHandler) handleLogin() error {
+// 	fmt.Println("=== Login ===")
+// 	fmt.Print("Username: ")
+// 	username := readInput()
+// 	fmt.Print("Password: ")
+// 	password := readInput()
 
-	username = strings.TrimSpace(username)
-	password = strings.TrimSpace(password)
+// 	username = strings.TrimSpace(username)
+// 	password = strings.TrimSpace(password)
 
-	// Simulasi user lookup
-	userHandler := handler.AuthHandler{DB: c.db}
-	user, err := userHandler.LoginUser(username, password)
+// 	// Simulasi user lookup
+// 	userHandler := handler.AuthHandler{DB: c.db}
+// 	user, err := userHandler.LoginUser(username, password)
 
-	if err != nil{
-		return err
-	}
+// 	if err != nil{
+// 		return err
+// 	}
 
-	c.ctx = utils.WithUser(c.ctx, user)
+// 	c.ctx = utils.WithUser(c.ctx, user)
 
-	return nil
-}
+// 	return nil
+// }
 
-func (c *cliHandler) handleRegister() {
-	fmt.Println("=== Register ===")
-	var userRegis entity.CustomerRegister
+// func (c *cliHandler) handleRegister() {
+	
+// fmt.Println("=== Register ===")
+// 	var userRegis entity.CustomerRegister
 
-	fmt.Print("Full Name: ")
-	userRegis.Name = readInput()
-	fmt.Print("Address: ")
-	userRegis.Address = readInput()
-	fmt.Print("Email: ")
-	userRegis.Email = readInput()
-	fmt.Print("Phone Number: ")
-	userRegis.Phone = readInput()
+// 	fmt.Print("Full Name: ")
+// 	userRegis.Name = readInput()
+// 	fmt.Print("Address: ")
+// 	userRegis.Address = readInput()
+// 	fmt.Print("Email: ")
+// 	userRegis.Email = readInput()
+// 	fmt.Print("Phone Number: ")
+// 	userRegis.Phone = readInput()
 
-	fmt.Println("\nCreate Login Credentials:")
-	fmt.Print("Username: ")
-	userRegis.Username = readInput()
-	fmt.Print("Password: ")
-	password := readInput()
-	fmt.Print("Confirm Password: ")
-	confirm := readInput()
+// 	fmt.Println("\nCreate Login Credentials:")
+// 	fmt.Print("Username: ")
+// 	userRegis.Username = readInput()
+// 	fmt.Print("Password: ")
+// 	password := readInput()
+// 	fmt.Print("Confirm Password: ")
+// 	confirm := readInput()
 
-	if password != confirm {
-		fmt.Println("Passwords do not match.")
-		return
-	}
-	userRegis.Password = password
+// 	if password != confirm {
+// 		fmt.Println("Passwords do not match.")
+// 		return
+// 	}
+// 	userRegis.Password = password
 
-	// Eksekusi handler.
+// 	// Eksekusi handler.
 
-	authHandler := handler.AuthHandler{DB: c.db}
-	message, err := authHandler.Register(&userRegis)
+// 	authHandler := handler.AuthHandler{DB: c.db}
+// 	err := authHandler.Register(&userRegis)
 
-	if err != nil{
-		log.Fatal(err)
-	}
+// 	if err != nil{
+// 		log.Fatal(err)
+// 	}
 
-	fmt.Println(message)
-}
-
-func showProducts() {
-	fmt.Println("=== Product List ===")
-	for i, product := range products {
-		fmt.Printf("%d. %s\n", i+1, product)
-	}
-	fmt.Println()
-}
+// 	fmt.Println("Register successfully")
+// }
 
 func (c *cliHandler) showLoggedInMenu() {
 	user, ok := utils.GetUser(c.ctx)
@@ -186,7 +221,7 @@ func (c *cliHandler) customerMenu(){
 	orderHandler := handler.OrderHandler{DB: c.db, Ctx: &c.ctx}
 	billingHandler := handler.BillingHandler{DB: c.db, Ctx: &c.ctx}
 	CustomerMenuLabel: for{
-		fmt.Println("=== Customer Menu ===")
+		fmt.Println("\n\n=== Customer Menu ===")
 		fmt.Println("1. Add Order")
 		fmt.Println("2. Create Billing")
 		fmt.Println("3. Update Order")
@@ -247,15 +282,6 @@ func (c *cliHandler) customerMenu(){
 			}
 
 			fmt.Println("Order berhasil dibuat.")
-
-			// fmt.Printf("%-10s %-15s %-12s %-10s %-10s\n", "Order ID", "NumberDisplay", "Order Date", "Status", "Total")
-			// fmt.Println(strings.Repeat("-", 60))
-			// fmt.Printf("%-10d %-15s %-12s %-10s %-10.2f\n", getOrder.ID, getOrder.NumberDisplay, getOrder.Date, getOrder.Status, getOrder.Total)
-			// fmt.Printf("%-20s %-10s %-20s %-8s %-10s\n", "OrderDetailID", "ProductID", "Name", "Qty", "Subtotal")
-			// for _, detail := range getOrder.Details {
-			// 	fmt.Printf("%-20d %-10d %-20s %-8d %-10.2f\n", detail.ID,detail.ProductID, detail.Product.Name, detail.Qty, detail.Total)
-			// }
-			// fmt.Println(strings.Repeat("-", 60))
 		case "2":
 			orders, err := orderHandler.GetOrders()
 			if err != nil {
@@ -313,12 +339,14 @@ func (c *cliHandler) customerMenu(){
 			}
 
 			orderDetailHandler := handler.OrderDetailHandler{DB: c.db, Ctx: &c.ctx}
-			_, err = orderDetailHandler.UpdateDetail(orderDetailId, qty)
+			res, err := orderDetailHandler.UpdateDetail(orderDetailId, qty)
 
 			if err != nil{
-				fmt.Printf("%v\n\n", err)
-				return
+				fmt.Printf("%v\n", err)
+				continue
 			}
+
+			fmt.Println(res)
 		case "4":
 			var paymentMethod entity.Method
 			var isOkPay bool
@@ -328,7 +356,7 @@ func (c *cliHandler) customerMenu(){
 				billNumberDisplay := readInput()
 				billing, err := billingHandler.GetBillByNumberDisplay(billNumberDisplay)
 				if err != nil{
-					fmt.Printf("%v\n\n", err)
+					fmt.Printf("%v\n", err)
 					continue
 				}
 

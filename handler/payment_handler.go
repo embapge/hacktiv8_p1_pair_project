@@ -20,8 +20,7 @@ func (p *PaymentHandler) CreatePayment(billing entity.Billing, amount float64, p
 	if !ok {
 		return fmt.Errorf("failed to get user from context")
 	}
-
-	fmt.Println(time.Now(), billing.DueDate, "selisih waktu")
+	
 	if time.Now().After(billing.DueDate) {
 		return errors.New("cannot create payment: order is past due date")
 	}

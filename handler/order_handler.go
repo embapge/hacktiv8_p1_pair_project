@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"pairproject/entity"
 	"pairproject/utils"
 	"time"
@@ -26,17 +25,9 @@ func (o *OrderHandler) CreateOrder(oProducts []entity.OrderProduct) (entity.Orde
 
 	tx, err := o.DB.Begin()
 	if err != nil {
+		tx.Rollback()
 		return order, err
 	}
-
-	defer func() {
-		if err != nil {
-			log.Fatal("Terjadi kesalahan membuat order: ", err)
-			tx.Rollback()
-			} else {
-			tx.Commit()
-		}
-	}()
 
 	numberDisplay := o.GenerateOrderNumber(tx)
 
@@ -44,16 +35,19 @@ func (o *OrderHandler) CreateOrder(oProducts []entity.OrderProduct) (entity.Orde
 	createdDate := time.Now().Format("2006-01-02")
 	res, err := tx.Exec("INSERT INTO orders (number_display, customer_id, date, created_by) VALUES (?, ?, ?, ?)", numberDisplay, user.Customer.ID, createdDate, user.ID)
 	if err != nil {
+		tx.Rollback()
 		return order, errors.New("Terjadi kesalahan membuat order")
 	}
 
 	orderID, err := res.LastInsertId()
 	if err != nil {
+		tx.Rollback()
 		return order, err
 	}
 
 	stmt, err := tx.Prepare("INSERT INTO order_details (order_id, product_id, qty, created_by) VALUES (?, ?, ?, ?)")
 	if err != nil {
+		tx.Rollback()
 		return order, errors.New("Terjadi kesalahan membuat detail order")
 	}
 	defer stmt.Close()
@@ -62,6 +56,7 @@ func (o *OrderHandler) CreateOrder(oProducts []entity.OrderProduct) (entity.Orde
 	for _, op := range oProducts {
 		_, err := stmt.Exec(orderID, op.ProductId, op.Qty, user.ID)
 		if err != nil {
+			tx.Rollback()
 			return order, errors.New("Terjadi kesalahan membuat detail order")
 		}
 
@@ -78,6 +73,11 @@ func (o *OrderHandler) CreateOrder(oProducts []entity.OrderProduct) (entity.Orde
 		NumberDisplay: numberDisplay,
 		CreatedBy:        user.ID,
 		Details:  orderDetails,
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return order, fmt.Errorf("Terjadi kesalahan saat commit transaksi: %v", err)
 	}
 
 	return order, nil

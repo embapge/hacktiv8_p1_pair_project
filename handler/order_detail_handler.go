@@ -31,5 +31,9 @@ func (od *OrderDetailHandler) UpdateDetail(id int, qty int) (entity.OrderDetail,
 		return orderDetail, fmt.Errorf("Terjadi kesalahan mengambil order detail id: %s", err)
 	}
 
+	if int(orderDetailID) == 0{
+		return orderDetail, fmt.Errorf("Order detail id tidak ditemukan.")
+	}
+
 	return entity.OrderDetail{ID: int(orderDetailID), Qty: qty}, nil
 }

@@ -79,7 +79,6 @@ func (b *BillingHandler) GenerateBillNumber() string {
 	currentYearMonth := time.Now().Format("200601") // YYYYMMDD
 	var lastNumber int
 
-	// Query for the latest number_display for the current date from billings table
 	query := `
 		SELECT 
 			COALESCE(
@@ -102,29 +101,29 @@ func (b *BillingHandler) GenerateBillNumber() string {
 
 func (b *BillingHandler) GetBillByNumberDisplay(numberDisplay string) (entity.Billing, error) {
 	var billing entity.Billing
-	// user, ok := utils.GetUser(*b.Ctx)
-	// if !ok {
-	// 	return billing, fmt.Errorf("failed to get user from context")
-	// }
-
+	user, ok := utils.GetUser(*b.Ctx)
+	if !ok {
+		return billing, fmt.Errorf("Please Login.")
+	}
+	
 	query := `
 		SELECT billings.id, order_id, billings.number_display, issue_date, due_date, billings.status, tax, billings.total, billings.created_by
 		FROM billings
 		JOIN orders on orders.id = billings.order_id 
-		WHERE billings.number_display = ?
+		WHERE billings.number_display = ? AND orders.customer_id = ?
 		LIMIT 1
 	`
 
-	err := b.DB.QueryRow(query, numberDisplay).Scan(
-	&billing.ID,             // 1: billings.id
-	&billing.OrderID,        // 2: order_id
-	&billing.NumberDisplay,  // 3: billings.number_display
-	&billing.IssueDate,      // 4: issue_date ✅
-	&billing.DueDate,        // 5: due_date
-	&billing.Status,         // 6: billings.status
-	&billing.Tax,            // 7: tax
-	&billing.Total,          // 8: billings.total
-	&billing.CreatedBy,      // 9: billings.created_by
+	err := b.DB.QueryRow(query, numberDisplay, user.ID).Scan(
+	&billing.ID,             
+	&billing.OrderID,        
+	&billing.NumberDisplay, 
+	&billing.IssueDate,      
+	&billing.DueDate,       
+	&billing.Status,         
+	&billing.Tax,            
+	&billing.Total,         
+	&billing.CreatedBy,     
 )
 
 	if err != nil {
@@ -132,7 +131,7 @@ func (b *BillingHandler) GetBillByNumberDisplay(numberDisplay string) (entity.Bi
 			return billing, errors.New("Billing tidak ditemukan")
 		}
 		
-		return billing, fmt.Errorf("failed to create bill: %s", err)
+		return billing, fmt.Errorf("Terjadi kesalahan: %s", err)
 	}
 
 	return billing, nil

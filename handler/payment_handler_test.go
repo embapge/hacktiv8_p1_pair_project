@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func SetupTestPaymentDB(t *testing.T) *sql.DB {
@@ -79,14 +80,19 @@ func TestCreatePayment_Success(t *testing.T){
 	ctx := utils.NewTestContextWithUser()
 	handler := &PaymentHandler{DB: db, Ctx: &ctx}
 	var method entity.Method = "va"
-	billing := entity.Billing{ID: 1, DueDate: time.Now()}
+	billing := entity.Billing{ID: 1, DueDate: time.Now().Add(1 * time.Minute)}
 	err := handler.CreatePayment(billing, 1000000.0, method)
 
 	if err != nil{
 		t.Fatalf("failed create payment: %v", err)
 	}
 
-	assert.Equal(t, true, true)
+	assert.Equal(t, true, true, "Payment berhasil dibuat")
+
+	billing = entity.Billing{ID: 1, DueDate: time.Now().Truncate(1 * time.Minute)}
+	err = handler.CreatePayment(billing, 1000000.0, method)
+
+	assert.Contains(t, err.Error(), "cannot create payment: order is past due date")
 }
 func TestCreatePayment_Error(t *testing.T){
 	db := SetupTestPaymentDB(t)
@@ -96,6 +102,7 @@ func TestCreatePayment_Error(t *testing.T){
 	billing := entity.Billing{ID: 1, DueDate: time.Now()}
 	err := handler.CreatePayment(billing, 30000000.00, method)
 
-	assert.Error(t, err, "Payment error karena nominal melebihi billing")
+	require.Error(t, err) // Langsung gagal test kalau err == nil
 	assert.Contains(t, err.Error(), "Total payment exceeds billing total")
+	// assert.Contains(t, err.Error(), "Total payment exceeds billing total")
 }
