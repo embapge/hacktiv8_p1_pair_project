@@ -7,6 +7,7 @@ type StatusBilling string
 
 const (
 	StatusUnpaid		StatusBilling = "unpaid"
+	StatusLesspaid		StatusBilling = "lesspaid"
 	StatusPaid			StatusBilling = "paid"
 	StatusCancelled		StatusBilling = "cancelled"
 	StatusRefunded		StatusBilling = "refunded"

@@ -319,8 +319,8 @@ func (c *cliHandler) customerMenu(){
 	CustomerMenuLabel: for{
 		fmt.Println("\n\n=== Customer Menu ===")
 		fmt.Println("1. Add Order")
-		fmt.Println("2. Create Billing")
-		fmt.Println("3. Update Order")
+		fmt.Println("2. Update Order")
+		fmt.Println("3. Create Billing")
 		fmt.Println("4. Add Payment")
 		fmt.Println("5. Log Out")
 		fmt.Print("Choose option: ")
@@ -378,7 +378,7 @@ func (c *cliHandler) customerMenu(){
 			}
 
 			fmt.Println("Order berhasil dibuat.")
-		case "2":
+		case "3":
 			orders, err := orderHandler.GetOrders()
 			if err != nil {
 				fmt.Println("Failed to get orders:", err)
@@ -411,7 +411,7 @@ func (c *cliHandler) customerMenu(){
 			}
 		
 			fmt.Printf("Silahkan melakukan pembayaran atas tagihan: %s dengan nominal: %.2f maksimal di pukul: %s\n\n", billing.NumberDisplay, billing.Total, billing.DueDate)
-		case "3":
+		case "2":
 			orders, err := orderHandler.GetOrders()
 			if err != nil {
 				fmt.Println("Failed to get orders:", err)
@@ -423,7 +423,7 @@ func (c *cliHandler) customerMenu(){
 			orderDetailIdStr := readInput()
 			orderDetailId, err := strconv.Atoi(orderDetailIdStr)
 			if err != nil {
-				fmt.Println("Invalid ProductId. Please enter a number.")
+				fmt.Println("Invalid orderDetailId.")
 				continue
 			}
 			fmt.Print("Kuantitas baru: ")
@@ -435,14 +435,14 @@ func (c *cliHandler) customerMenu(){
 			}
 
 			orderDetailHandler := handler.OrderDetailHandler{DB: c.db, Ctx: &c.ctx}
-			res, err := orderDetailHandler.UpdateDetail(orderDetailId, qty)
+			_, err = orderDetailHandler.UpdateDetail(orderDetailId, qty)
 
 			if err != nil{
 				fmt.Printf("%v\n", err)
 				continue
 			}
 
-			fmt.Println(res)
+			fmt.Println("Order detail berhasil diupdate")
 		case "4":
 			var paymentMethod entity.Method
 			var isOkPay bool
@@ -488,7 +488,7 @@ func (c *cliHandler) customerMenu(){
 					return
 				}
 
-				err = paymentHandler.CreatePayment(billing, amount, paymentMethod)
+				err = paymentHandler.CreatePayment(&billingHandler, billing, amount, paymentMethod)
 				if err != nil{
 					fmt.Println(err)
 				}else{

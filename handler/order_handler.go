@@ -122,7 +122,7 @@ func (o *OrderHandler) GetOrders() ([]entity.Order, error) {
 		FROM orders ord
 		JOIN order_details od ON ord.id = od.order_id
 		JOIN products p ON od.product_id = p.id
-		WHERE ord.customer_id = ?
+		WHERE ord.customer_id = ? AND status = "processing"
 		ORDER BY ord.id DESC
 	`
 
@@ -201,7 +201,7 @@ func (o *OrderHandler) GetOrderByNumberDisplay(numberDisplay string) (entity.Ord
 		LIMIT 1
 	`
 
-	err := o.DB.QueryRow(query, numberDisplay, user.ID).Scan(
+	err := o.DB.QueryRow(query, numberDisplay, user.Customer.ID).Scan(
 		&order.ID,
 		&order.NumberDisplay,
 		&order.Date,

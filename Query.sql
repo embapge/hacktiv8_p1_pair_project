@@ -114,7 +114,7 @@ CREATE TABLE billings (
     due_date TIMESTAMP,
     tax DECIMAL(10,2) NOT NULL DEFAULT 0 CHECK (tax >= 0),
     total DECIMAL(10,2) NOT NULL DEFAULT 0 CHECK (total >= 0),
-    status ENUM('unpaid', 'paid', 'cancelled', 'refunded') NOT NULL DEFAULT 'unpaid',
+    status ENUM('unpaid', 'lesspaid', 'paid', 'cancelled', 'refunded') NOT NULL DEFAULT 'unpaid',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
     updated_at TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     created_by INT NOT NULL, 

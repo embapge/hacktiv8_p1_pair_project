@@ -15,6 +15,19 @@ type BillingHandler struct {
 	Ctx *context.Context
 }
 
+type BillingWithPaymentsSimple struct {
+	BillingID     int
+	OrderID     int
+	NumberDisplay string
+	Tax           float64
+	Total         float64
+	Status        string
+	Payments      []struct {
+		ID     int
+		Amount  float64
+	}
+}
+
 func (b *BillingHandler) GenerateBill(o entity.Order) (entity.Billing, error) {
 	var billing entity.Billing
 
@@ -109,12 +122,12 @@ func (b *BillingHandler) GetBillByNumberDisplay(numberDisplay string) (entity.Bi
 	query := `
 		SELECT billings.id, order_id, billings.number_display, issue_date, due_date, billings.status, tax, billings.total, billings.created_by
 		FROM billings
-		JOIN orders on orders.id = billings.order_id 
-		WHERE billings.number_display = ? AND orders.customer_id = ?
+		JOIN orders on orders.id = billings.order_id
+		WHERE billings.number_display = ? AND orders.customer_id = ? AND (billings.status = 'unpaid' OR billings.status = 'lesspaid')
 		LIMIT 1
 	`
 
-	err := b.DB.QueryRow(query, numberDisplay, user.ID).Scan(
+	err := b.DB.QueryRow(query, numberDisplay, user.Customer.ID).Scan(
 	&billing.ID,             
 	&billing.OrderID,        
 	&billing.NumberDisplay, 
@@ -135,4 +148,106 @@ func (b *BillingHandler) GetBillByNumberDisplay(numberDisplay string) (entity.Bi
 	}
 
 	return billing, nil
+}
+
+func (b *BillingHandler) GetBillingWithSimplePayments(billingID int) (BillingWithPaymentsSimple, error) {
+	var result BillingWithPaymentsSimple
+
+	query := `
+		SELECT 
+			billings.id, orders.id, billings.number_display, billings.tax, billings.total, billings.status, 
+			payments.id, payments.amount
+		FROM billings
+		JOIN orders on orders.id = billings.order_id
+		LEFT JOIN payments ON payments.billing_id = billings.id
+		WHERE billings.id = ?
+	`
+
+	rows, err := b.DB.Query(query, billingID)
+	if err != nil {
+		if err == sql.ErrNoRows{
+			return result, err
+		}
+
+		return result, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var (
+			billingID       int
+			orderID       int
+			numberDisplay   string
+			tax             float64
+			total           float64
+			status          string
+			paymentID       sql.NullInt64
+			paymentAmount   sql.NullFloat64
+		)
+
+		err := rows.Scan(&billingID, &orderID, &numberDisplay, &tax, &total, &status, &paymentID, &paymentAmount)
+		if err != nil {
+			return result, err
+		}
+
+		result.BillingID = billingID
+		result.OrderID = orderID
+		result.NumberDisplay = numberDisplay
+		result.Tax = tax
+		result.Total = total
+		result.Status = status
+
+		// Add payment if exists
+		result.Payments = append(result.Payments, struct{ID int; Amount float64}{
+			ID: int(paymentID.Int64),
+			Amount: paymentAmount.Float64,
+		})
+	}
+	return result, nil
+}
+
+func (b *BillingHandler) UpdateOrderAndBillingStatus(billingID int) error {
+	tx, err := b.DB.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+
+	billPayments, err := b.GetBillingWithSimplePayments(billingID)
+
+	if err != nil{
+		return err
+	}
+
+	var total float64
+
+	for _, payment := range billPayments.Payments{
+		total += payment.Amount
+	}
+
+	if total >= billPayments.Total {
+		_, err = tx.Exec("UPDATE billings SET status = 'paid' WHERE id = ?", billingID)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		_, err = tx.Exec("UPDATE orders SET status = 'completed' WHERE id = ?", billPayments.OrderID)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+	} else {
+		_, err = tx.Exec("UPDATE billings SET status = 'lesspaid' WHERE id = ?", billingID)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return fmt.Errorf("Terjadi kesalahan saat commit transaksi: %v", err)
+	}
+
+	return nil
 }

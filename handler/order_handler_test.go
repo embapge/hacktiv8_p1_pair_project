@@ -87,6 +87,7 @@ func SetupTestOrderDB(t *testing.T) *sql.DB {
 }
 func TestCreateOrder(t *testing.T) {
 	db := SetupTestOrderDB(t)
+	defer db.Close()
 	ctx := utils.NewTestContextWithUser()
 	handler := &OrderHandler{DB: db, Ctx: &ctx}
 
@@ -113,6 +114,7 @@ func TestCreateOrder(t *testing.T) {
 
 func TestGenerateOrderNumber(t *testing.T) {
 	db := SetupTestOrderDB(t)
+	defer db.Close()
 	ctx := context.Background()
 	handler := &OrderHandler{DB: db, Ctx: &ctx}
 
