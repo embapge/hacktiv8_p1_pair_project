@@ -11,17 +11,20 @@ import (
 	"pairproject/utils"
 
 	"github.com/stretchr/testify/assert"
-	_ "modernc.org/sqlite" // contoh driver SQLite untuk test
+	_ "modernc.org/sqlite" // Driver SQLite untuk testing
 )
 
+// SetupTestOrderDB membuat database in-memory SQLite untuk keperluan unit testing.
+// Tabel yang dibuat: orders, order_details, products, dan trigger untuk menghitung total otomatis.
 func SetupTestOrderDB(t *testing.T) *sql.DB {
 	db, err := sql.Open("sqlite", ":memory:")
 	if err != nil {
 		t.Fatalf("failed open db: %v", err)
 	}
 
-	currentYearMonth := time.Now().Format("200601")
+	currentYearMonth := time.Now().Format("200601") // Format YYYYMM
 
+	// Buat tabel, trigger, dan isi data awal
 	initialDB := fmt.Sprintf(`
 		CREATE TABLE orders (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -74,47 +77,53 @@ func SetupTestOrderDB(t *testing.T) *sql.DB {
 			)
 			WHERE id = NEW.order_id;
 		END;
-
 	`, currentYearMonth)
 
-	// Buat schema tabel minimal untuk test
-	schema := initialDB
-	_, err = db.Exec(schema)
+	_, err = db.Exec(initialDB)
 	if err != nil {
 		t.Fatalf("failed create schema: %v", err)
 	}
+
 	return db
 }
+
+// TestCreateOrder menguji proses pembuatan order dan menghitung total dari order_details.
 func TestCreateOrder(t *testing.T) {
 	db := SetupTestOrderDB(t)
 	defer db.Close()
+
 	ctx := utils.NewTestContextWithUser()
 	handler := &OrderHandler{DB: db, Ctx: &ctx}
 
+	// Produk yang ingin dipesan
 	orderProducts := []entity.OrderProduct{
-		{ProductId: 1, Qty: 2}, // 200000
-		{ProductId: 2, Qty: 3}, // 150000
+		{ProductId: 1, Qty: 2}, // 2 x 100000 = 200000
+		{ProductId: 2, Qty: 3}, // 3 x 50000  = 150000
 	}
 
 	order, err := handler.CreateOrder(orderProducts)
 	if err != nil {
 		t.Fatalf("CreateOrder failed: %v", err)
 	}
-	assert.NotEqual(t, order.ID, 0, "Order Id berhasil dibuat")
-	assert.Equal(t, len(order.Details), len(orderProducts), "Jumlah product terbuat sesuai yaitu %d", len(orderProducts))
-	
+
+	assert.NotEqual(t, order.ID, 0, "Order ID harus berhasil dibuat")
+	assert.Equal(t, len(order.Details), len(orderProducts), "Jumlah produk harus sesuai")
+
+	// Validasi order berdasarkan nomor
 	currentYearMonth := time.Now().Format("200601")
 	order, err = handler.GetOrderByNumberDisplay(fmt.Sprintf("ORD-%s-002", currentYearMonth))
 	if err != nil {
-		t.Fatalf("CreateOrder failed: %v", err)
+		t.Fatalf("GetOrderByNumberDisplay failed: %v", err)
 	}
-	
-	assert.Equal(t, order.Total, float64(350000))
+
+	assert.Equal(t, float64(350000), order.Total, "Total order harus sesuai (200000 + 150000)")
 }
 
+// TestGenerateOrderNumber menguji penomoran otomatis order berdasarkan nomor terakhir di database.
 func TestGenerateOrderNumber(t *testing.T) {
 	db := SetupTestOrderDB(t)
 	defer db.Close()
+
 	ctx := context.Background()
 	handler := &OrderHandler{DB: db, Ctx: &ctx}
 
@@ -129,12 +138,11 @@ func TestGenerateOrderNumber(t *testing.T) {
 	}
 
 	currentYearMonth := time.Now().Format("200601")
+	expected := fmt.Sprintf("ORD-%s-002", currentYearMonth)
 
-	assert.NotEmpty(t, num)
-	assert.Equal(t, fmt.Sprintf("ORD-%s-002", string(currentYearMonth)), num, "Penomoran order sudai sesuai")
+	assert.Equal(t, expected, num, "Nomor order harus naik jadi ORD-YYYYMM-002")
 
-	err = tx.Commit()
-	if err != nil {
+	if err := tx.Commit(); err != nil {
 		t.Fatalf("failed commit tx: %v", err)
 	}
 }

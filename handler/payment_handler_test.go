@@ -11,20 +11,23 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// SetupTestPaymentDB adalah fungsi helper untuk membuat database in-memory SQLite 
+// dengan skema tabel orders, billings, payments, dan trigger yang dibutuhkan untuk pengujian.
 func SetupTestPaymentDB(t *testing.T) *sql.DB {
-	db, err := sql.Open("sqlite", ":memory:")
+	db, err := sql.Open("sqlite", ":memory:") // Membuka SQLite in-memory
 	if err != nil {
-		t.Fatalf("failed open db: %v", err)
+		t.Fatalf("failed open db: %v", err) // Gagal jika tidak bisa membuka DB
 	}
 
+	// SQL skema: membuat tabel orders, billings, payments, dan trigger untuk validasi payment
 	schema := `
 CREATE TABLE orders (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    date TEXT NOT NULL, -- Changed from DATE to TEXT
+    date TEXT NOT NULL,
     status TEXT NOT NULL CHECK (status IN ('processing', 'completed', 'cancel')),
-    total NUMERIC NOT NULL DEFAULT 0 CHECK (total >= 0), -- Changed from DECIMAL to NUMERIC
+    total NUMERIC NOT NULL DEFAULT 0 CHECK (total >= 0),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, -- Handled by trigger below
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 	created_by INTEGER NOT NULL
 );
 
@@ -38,8 +41,6 @@ BEGIN
     UPDATE orders SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
 END;
 
----
-
 CREATE TABLE billings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
 	number_display TEXT NOT NULL,
@@ -47,15 +48,14 @@ CREATE TABLE billings (
     due_date DATETIME,
 	tax NUMERIC DEFAULT 0 CHECK (total >= 0) NOT NULL,
 	status TEXT NOT NULL CHECK (status IN ('unpaid', 'lesspaid', 'paid', 'cancelled', 'refunded')) DEFAULT 'unpaid',
-    total NUMERIC DEFAULT 0 CHECK (total >= 0) NOT NULL, -- Changed from DECIMAL to NUMERIC
-    amount NUMERIC DEFAULT 0 CHECK (amount >= 0) NOT NULL, -- Changed from DECIMAL to NUMERIC
+    total NUMERIC DEFAULT 0 CHECK (total >= 0) NOT NULL,
+    amount NUMERIC DEFAULT 0 CHECK (amount >= 0) NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, -- Handled by trigger below
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     created_by INTEGER NOT NULL,
 	updated_by INTEGER NOT NULL
 );
 
--- Contoh insert data (Added 'total' column and value to match table schema)
 INSERT INTO billings (order_id, number_display, tax, total, status, created_by, updated_by)
 VALUES 
 (1, 'BIL-202506-001', 50000.00, 1700000.00, 'paid', 2, 2);
@@ -64,20 +64,19 @@ CREATE TABLE payments (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     billing_id INTEGER NOT NULL,
     date DATETIME DEFAULT CURRENT_TIMESTAMP,
-    amount NUMERIC DEFAULT 0 CHECK (amount >= 0) NOT NULL, -- Changed from DECIMAL to NUMERIC
+    amount NUMERIC DEFAULT 0 CHECK (amount >= 0) NOT NULL,
     method TEXT NOT NULL CHECK (method IN ('credit_card', 'va', 'transfer')),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     created_by INTEGER NOT NULL,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, -- Added updated_at column
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (billing_id) REFERENCES billings(id) ON DELETE CASCADE
 );
 
--- Trigger validate_payment_amount (already compatible with SQLite)
+-- Trigger untuk mencegah pembayaran yang melebihi total tagihan
 CREATE TRIGGER validate_payment_amount
 BEFORE INSERT ON payments
 FOR EACH ROW
 BEGIN
-    -- Jika total pembayaran melebihi jumlah tagihan, hentikan proses
     SELECT
         CASE
             WHEN (
@@ -88,22 +87,32 @@ BEGIN
         END;
 END;
 `
+
+	// Eksekusi seluruh schema SQL
 	_, err = db.Exec(schema)
 	if err != nil {
-		t.Fatalf("failed create schema: %v", err)
+		t.Fatalf("failed create schema: %v", err) // Jika gagal membuat schema, hentikan test
 	}
 	return db
 }
+
+// TestCreatePayment_Error menguji skenario gagal ketika total pembayaran melebihi jumlah tagihan
 func TestCreatePayment_Error(t *testing.T){
-	db := SetupTestPaymentDB(t)
-	ctx := utils.NewTestContextWithUser()
+	db := SetupTestPaymentDB(t) // Inisialisasi DB testing
+	ctx := utils.NewTestContextWithUser() // Buat context dengan user palsu
+
+	// Inisialisasi handler payment dan billing
 	handler := &PaymentHandler{DB: db, Ctx: &ctx}
-	var method entity.Method = "va"
-	billing := entity.Billing{ID: 1, DueDate: time.Now()}
 	billingHandler := &BillingHandler{DB: db, Ctx: &ctx}
+
+	// Simulasi data pembayaran
+	var method entity.Method = "va"
+	billing := entity.Billing{ID: 1, DueDate: time.Now()} // Billing yang sudah ada di DB (ID:1)
+
+	// Coba membuat payment dengan nominal lebih besar dari total billing yang seharusnya
 	err := handler.CreatePayment(billingHandler, billing, 30000000.00, method)
 
-	require.Error(t, err) // Langsung gagal test kalau err == nil
-	assert.Contains(t, err.Error(), "Total payment exceeds billing total")
-	// assert.Contains(t, err.Error(), "Total payment exceeds billing total")
+	// Pastikan error terjadi
+	require.Error(t, err) // Test gagal jika tidak ada error
+	assert.Contains(t, err.Error(), "Total payment exceeds billing total") // Pastikan pesan error sesuai
 }

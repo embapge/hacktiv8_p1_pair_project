@@ -8,13 +8,15 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	_ "modernc.org/sqlite" // SQLite driver CGO-less
+	_ "modernc.org/sqlite" // SQLite driver tanpa CGO (untuk testing)
 )
 
+// SetupTestAuthDB menginisialisasi database SQLite in-memory untuk pengujian
 func SetupTestAuthDB(t *testing.T) *sql.DB {
 	db, err := sql.Open("sqlite", ":memory:")
 	require.NoError(t, err, "failed to open in-memory SQLite DB")
 
+	// Eksekusi schema dan seeding data dummy untuk pengujian
 	_, err = db.Exec(`
 		CREATE TABLE users ( 
 			id INTEGER PRIMARY KEY AUTOINCREMENT, 
@@ -25,6 +27,7 @@ func SetupTestAuthDB(t *testing.T) *sql.DB {
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		); 
 
+		-- Tambahkan beberapa user sebagai seed data
 		INSERT INTO users (username, email, password, role) VALUES
 		('admin01', 'admin01@example.com', '123456', 'admin'),
 		('staff01', 'staff01@example.com', '123456', 'staff'),
@@ -54,6 +57,7 @@ func SetupTestAuthDB(t *testing.T) *sql.DB {
 			FOREIGN KEY (customer_id) REFERENCES customers(id) 
 		); 
 
+		-- Tambahkan data customer dan relasinya dengan user
 		INSERT INTO customers (name, address, email, phone_number, created_by, updated_by)
 		VALUES 
 		('John Doe', 'Jl. Merdeka No. 123, Jakarta', 'john@example.com', '081234567890', 2, 2),
@@ -69,61 +73,79 @@ func SetupTestAuthDB(t *testing.T) *sql.DB {
 	return db
 }
 
+// TestRegister_SUCCESS menguji registrasi user baru yang valid
 func TestRegister_SUCCESS(t *testing.T){
 	db := SetupTestAuthDB(t)
 	handler := &AuthHandler{DB: db}
-	customer := entity.CustomerRegister{Name: "Mohammad Barata", Address: "KP", Email: "mohammadbarata.mb@gmail.com", Phone: "08922387737", Username: "embapge", Password: "1234567"}
 
+	// Data customer baru yang belum ada di database
+	customer := entity.CustomerRegister{
+		Name:     "Mohammad Barata",
+		Address:  "KP",
+		Email:    "mohammadbarata.mb@gmail.com",
+		Phone:    "08922387737",
+		Username: "embapge",
+		Password: "1234567",
+	}
+
+	// Jalankan register dan pastikan tidak ada error
 	err := handler.Register(&customer)
-
 	assert.NoError(t, err)
 }
 
+// TestRegister_FAILED menguji registrasi dengan data yang sudah ada (username/email duplikat)
 func TestRegister_FAILED(t *testing.T){
 	db := SetupTestAuthDB(t)
 	handler := &AuthHandler{DB: db}
 
-	// Name     string
-	// Address  string
-	// Email    string
-	// Phone    string
-	// Username string
-	// Password string
-	// Role     string // "admin" atau "customer"
+	// Data dengan username dan email yang sudah digunakan oleh custuser1
+	customer := entity.CustomerRegister{
+		Name:     "Didit",
+		Address:  "KP",
+		Email:    "mohammadbarata.mb@gmail.com", // akan bentrok
+		Phone:    "08922387737",
+		Username: "custuser1", // akan bentrok
+		Password: "1234567",
+	}
 
-	customer := entity.CustomerRegister{Name: "Didit", Address: "KP", Email: "mohammadbarata.mb@gmail.com", Phone: "08922387737", Username: "custuser1", Password: "1234567"}
-
+	// Jalankan register dan pastikan error terjadi karena duplikasi
 	err := handler.Register(&customer)
-
-	assert.Contains(t, err.Error(),"UNIQUE", "Terjadi error karena username telah terdaftar")
+	assert.Contains(t, err.Error(), "UNIQUE", "Terjadi error karena username telah terdaftar")
 }
 
+// TestLoginUser_SUCCESS menguji login dengan user yang valid
 func TestLoginUser_SUCCESS(t *testing.T){
 	db := SetupTestAuthDB(t)
 	handler := &AuthHandler{DB: db}
+
+	// Coba login dengan admin
 	user, err := handler.LoginUser("admin01", "123456")
-	if err != nil{
+	if err != nil {
 		t.Fatal(err)
 	}
 	assert.NotEqual(t, user.ID, 0, "Berhasil login")
+
+	// Coba login dengan staff
 	user, err = handler.LoginUser("staff01", "123456")
-	if err != nil{
+	if err != nil {
 		t.Fatal(err)
 	}
-
 	assert.NotEqual(t, user.ID, 0, "Berhasil login")
+
+	// Coba login dengan customer
 	user, err = handler.LoginUser("custuser2", "123456")
-	if err != nil{
+	if err != nil {
 		t.Fatal(err)
 	}
-
 	assert.NotEqual(t, user.ID, 0, "Berhasil login")
 }
 
+// TestLoginUser_FAILED menguji login gagal karena password salah
 func TestLoginUser_FAILED(t *testing.T){
 	db := SetupTestAuthDB(t)
 	handler := &AuthHandler{DB: db}
+
+	// Coba login dengan password yang salah
 	_, err := handler.LoginUser("admin01", "1234567")
-	
-	assert.Contains(t, err.Error(), "Password atau username salah", "Berhasil login")
+	assert.Contains(t, err.Error(), "Password atau username salah", "Login gagal seharusnya")
 }
