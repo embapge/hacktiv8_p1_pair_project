@@ -1,8 +1,4 @@
-DROP DATABASE IF EXISTS pair_project; 
- 
-CREATE DATABASE pair_project; 
- 
-USE pair_project; 
+USE railway; 
  
 CREATE TABLE users ( 
     id INT PRIMARY KEY AUTO_INCREMENT, 
@@ -80,7 +76,7 @@ CREATE TABLE orders (
     status ENUM('processing', 'completed', 'cancel') NOT NULL DEFAULT 'processing',
     total DECIMAL(10,2) NOT NULL DEFAULT 0 CHECK (total >= 0),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     created_by INT NOT NULL,
     updated_by INT, 
     FOREIGN KEY (created_by) REFERENCES users(id),
@@ -110,11 +106,13 @@ CREATE TABLE billings (
     id INT PRIMARY KEY AUTO_INCREMENT, 
     order_id INT NOT NULL, 
     number_display VARCHAR(50) UNIQUE, 
+    issue_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    due_date TIMESTAMP,
     tax DECIMAL(10,2) NOT NULL DEFAULT 0 CHECK (tax >= 0), 
     total DECIMAL(10,2) NOT NULL DEFAULT 0 CHECK (total >= 0), 
     status ENUM('unpaid', 'paid', 'lesspaid', 'cancelled', 'refunded') NOT NULL DEFAULT 'unpaid', 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     created_by INT NOT NULL,
     updated_by INT, 
     FOREIGN KEY (created_by) REFERENCES users(id),

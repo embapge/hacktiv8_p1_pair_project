@@ -363,6 +363,10 @@ func (c *cliHandler) customerMenu(){
 			}
 			printOrders(orders) // Tampilkan order yang ada
 
+			if len(orders) == 0{
+				continue
+			}
+
 			fmt.Print("Silahkan masuk nomor order: ")
 			orderNumber := readInput()
 
@@ -401,6 +405,10 @@ func (c *cliHandler) customerMenu(){
 				return
 			}
 			printOrders(orders) // Tampilkan order
+
+			if len(orders) == 0{
+				continue
+			}
 
 			// Input order detail yang ingin diupdate
 			fmt.Print("Silahkan masuk id order detail: ")
@@ -443,7 +451,7 @@ func (c *cliHandler) customerMenu(){
 				billing, err := billingHandler.GetBillByNumberDisplay(billNumberDisplay)
 				if err != nil {
 					fmt.Printf("%v\n", err)
-					continue
+					continue CustomerMenuLabel
 				}
 
 				// Tampilkan opsi metode pembayaran yang tersedia

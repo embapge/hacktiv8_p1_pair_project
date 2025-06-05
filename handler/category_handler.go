@@ -32,7 +32,7 @@ func (c *CategoryHandler) CreateCategory(name string) error {
 	_, err := c.DB.Exec(query, name, user.ID)
 	if err != nil {
 		// Jika gagal menyimpan ke database, kembalikan error
-		return fmt.Errorf("Terjadi kesalahan ketika membuat produk")
+		return fmt.Errorf("Terjadi kesalahan ketika membuat kategori")
 	}
 
 	// Jika berhasil, kembalikan nil (tidak ada error)
