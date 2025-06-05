@@ -9,7 +9,7 @@ CREATE TABLE users (
     username VARCHAR(100) NOT NULL UNIQUE, 
     email VARCHAR(100) NOT NULL UNIQUE, 
     password VARCHAR(255) NOT NULL, 
-    role ENUM('admin', 'staff', 'customer') NOT NULL, 
+    role ENUM('admin', 'customer') NOT NULL, 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
     updated_at TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_role (role), 
@@ -265,76 +265,70 @@ DELIMITER ;
 -- End Trigger
 
 
-INSERT INTO users (username, email, password, role)
-VALUES 
-/*('admin01', 'admin01@example.com', '$2b$12$rcVbOnmFPSu5S4sSccrYPuLZXHybabFFYCFIi9R4uEft1uTeq2rO2', 'admin'),
-('staff01', 'staff01@example.com', '$2b$12$rcVbOnmFPSu5S4sSccrYPuLZXHybabFFYCFIi9R4uEft1uTeq2rO2', 'staff'),
-('staff02', 'staff02@example.com', '$2b$12$rcVbOnmFPSu5S4sSccrYPuLZXHybabFFYCFIi9R4uEft1uTeq2rO2', 'staff'),
-('custuser1', 'cust1@example.com', '$2b$12$rcVbOnmFPSu5S4sSccrYPuLZXHybabFFYCFIi9R4uEft1uTeq2rO2', 'customer'),
-('custuser2', 'cust2@example.com', '$2b$12$rcVbOnmFPSu5S4sSccrYPuLZXHybabFFYCFIi9R4uEft1uTeq2rO2', 'customer');*/
-
+-- USERS
+INSERT INTO users (username, email, password, role) VALUES
 ('admin01', 'admin01@example.com', '123456', 'admin'),
-('staff01', 'staff01@example.com', '123456', 'staff'),
-('staff02', 'staff02@example.com', '123456', 'staff'),
-('custuser1', 'cust1@example.com', '123456', 'customer'),
-('custuser2', 'cust2@example.com', '123456', 'customer');
+('admin02', 'admin02@example.com', '123456', 'admin'),
+('custA', 'custA@example.com', '123456', 'customer'),
+('custB', 'custB@example.com', '123456', 'customer'),
+('custC', 'custC@example.com', '123456', 'customer');
 
+-- CUSTOMERS
+INSERT INTO customers (name, address, email, phone_number, created_by, updated_by) VALUES
+('Andi Nugroho', 'Jl. Mawar No.1, Jakarta', 'andi@example.com', '0811111111', 1, 1),
+('Budi Santoso', 'Jl. Melati No.2, Bandung', 'budi@example.com', '0822222222', 1, 1),
+('Citra Ayu', 'Jl. Kenanga No.3, Surabaya', 'citra@example.com', '0833333333', 2, 2);
 
-INSERT INTO customers (name, address, email, phone_number, created_by, updated_by)
-VALUES 
-('John Doe', 'Jl. Merdeka No. 123, Jakarta', 'john@example.com', '081234567890', 2, 2),
-('Jane Smith', 'Jl. Sudirman No. 10, Bandung', 'jane@example.com', '089876543210', 3, 3);
+-- USER_CUSTOMERS
+INSERT INTO user_customers (user_id, customer_id) VALUES
+(3, 1),
+(4, 2),
+(5, 3);
 
-INSERT INTO user_customers (user_id, customer_id)
-VALUES 
-(4, 1),
-(5, 2);
+-- CATEGORIES
+INSERT INTO categories (name, created_by, updated_by) VALUES
+('Gym Equipment', 1, 1),
+('Outdoor & Hiking', 1, 1),
+('Supplements', 2, 2);
 
-INSERT INTO categories (name, created_by, updated_by)
-VALUES 
-('Fitness Equipment', 2, 2),
-('Outdoor Gear', 2, 2),
-('Nutrition & Supplements', 3, 3);
+-- PRODUCTS
+INSERT INTO products (name, stock, description, category_id, price, created_by, updated_by) VALUES
+('Barbell 15kg', 5, 'Heavy-duty steel barbell', 1, 750000, 1, 1),
+('Resistance Band Set', 20, '5 different resistance levels', 1, 200000, 1, 1),
+('Hiking Backpack 30L', 10, 'Durable waterproof backpack', 2, 450000, 1, 1),
+('Climbing Rope 10m', 8, 'Strong and elastic rope for climbing', 2, 350000, 1, 1),
+('Creatine Powder 300g', 15, 'Performance supplement', 3, 220000, 2, 2),
+('Vitamin D3 1000IU', 25, 'Daily supplement for bones', 3, 120000, 2, 2);
 
-INSERT INTO products (name, stock, description, category_id, price, created_by, updated_by)
-VALUES 
-('Adjustable Dumbbell 20kg', 10, 'Customizable weight dumbbell for home workouts', 1, 1200000.00, 2, 2),
-('Treadmill Compact X100', 4, 'Foldable treadmill with digital display', 1, 5500000.00, 2, 2),
-('Tent 2-Person Waterproof', 8, 'Outdoor tent ideal for camping', 2, 875000.00, 3, 3),
-('Camping Stove Mini', 15, 'Portable gas stove for outdoor use', 2, 320000.00, 3, 3),
-('Whey Protein 1kg', 20, 'Chocolate flavor protein supplement', 3, 450000.00, 2, 2),
-('Electrolyte Drink Pack (12x)', 30, 'Hydration booster during exercise', 3, 180000.00, 3, 3);
+-- ORDERS
+INSERT INTO orders (customer_id, number_display, date, status, total, created_by, updated_by) VALUES
+(1, 'ORD-202506-101', '2025-06-03', 'completed', 950000, 1, 1),
+(2, 'ORD-202506-102', '2025-06-04', 'processing', 670000, 1, 1),
+(3, 'ORD-202506-103', '2025-06-05', 'cancel', 0, 2, 2),
+(3, 'ORD-202506-104', '2025-06-05', 'completed', 570000, 2, 2), -- additional for unpaid
+(2, 'ORD-202506-105', '2025-06-05', 'completed', 820000, 1, 1); -- additional for paid
 
-INSERT INTO orders (customer_id, number_display, date, status, total, created_by, updated_by)
-VALUES 
-(1, 'ORD-202506-001', '2025-06-01', 'completed', 1700000.00, 2, 2),
-(2, 'ORD-202506-002', '2025-06-01', 'processing', 630000.00, 3, 3);
+-- ORDER_DETAILS
+INSERT INTO order_details (order_id, product_id, qty, created_by, updated_by) VALUES
+(1, 1, 1, 1, 1),  -- Barbell
+(1, 2, 1, 1, 1),  -- Resistance Band
+(2, 3, 1, 1, 1),  -- Backpack
+(2, 6, 1, 1, 1),  -- Vitamin D
+(4, 4, 1, 2, 2),  -- Climbing Rope
+(4, 6, 1, 2, 2),  -- Vitamin D
+(5, 5, 2, 1, 1),  -- Creatine Powder
+(5, 2, 1, 1, 1);  -- Resistance Band
 
--- Order 1: Dumbbell + Whey Protein
-INSERT INTO order_details (order_id, product_id, qty, created_by, updated_by)
-VALUES 
-(1, 1, 1, 2, 2),  -- Adjustable Dumbbell
-(1, 5, 1, 2, 2);  -- Whey Protein
+-- BILLINGS
+INSERT INTO billings (order_id, number_display, tax, total, status, created_by, updated_by) VALUES
+(1, 'BIL-202506-201', 50000, 950000, 'paid', 1, 1),
+(2, 'BIL-202506-202', 30000, 670000, 'unpaid', 1, 1),
+(3, 'BIL-202506-203', 0, 0, 'cancelled', 2, 2),
+(4, 'BIL-202506-204', 27000, 570000, 'unpaid', 2, 2), -- new unpaid
+(5, 'BIL-202506-205', 40000, 820000, 'paid', 1, 1);    -- new paid
 
--- Order 2: Camping Stove + Electrolyte Drink
-INSERT INTO order_details (order_id, product_id, qty, created_by, updated_by)
-VALUES 
-(2, 4, 1, 3, 3),  -- Camping Stove
-(2, 6, 1, 3, 3);  -- Electrolyte Drink
-
--- Billing for Order 1
-INSERT INTO billings (order_id, number_display, tax, total, status, created_by, updated_by)
-VALUES 
-(1, 'BIL-202506-001', 50000.00, 1700000.00, 'paid', 2, 2);
-
--- Billing for Order 2
-INSERT INTO billings (order_id, number_display, tax, total, status, created_by, updated_by)
-VALUES 
-(2, 'BIL-202506-002', 30000.00, 630000.00, 'unpaid', 3, 3);
-
--- Payment for Billing 1
-INSERT INTO payments (billing_id, date, amount, method, created_by, updated_by)
-VALUES 
-(1, '2025-06-01 10:00:00', 1700000.00, 'transfer', 2, 2);
-
-SELECT id, username, email, role, password FROM users WHERE username = 'admin01';
+-- PAYMENTS
+INSERT INTO payments (billing_id, date, amount, method, created_by, updated_by) VALUES
+(1, '2025-06-03 14:10:00', 950000, 'transfer', 1, 1),
+(2, '2025-06-04 15:30:00', 670000, 'va', 1, 1), -- unpaid billing, payment may be pending validation
+(5, '2025-06-05 12:00:00', 820000, 'credit_card', 1, 1); -- paid in full
